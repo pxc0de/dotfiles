@@ -1,55 +1,33 @@
-###############################################################################
-# Homebrew (Apple Silicon first, then Intel)
-if [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [ -x /usr/local/bin/brew ]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-fi
-###############################################################################
-# Force color output in terminal applications
+for prefix in /opt/homebrew /usr/local; do
+  [[ -x $prefix/bin/brew ]] && eval "$($prefix/bin/brew shellenv)" && break
+done
+
+typeset -U path
+path=(~/.local/bin $path ~/.cargo/bin)
+
 export CLICOLOR=1
-export CLICOLOR_FORCE=1
-###############################################################################
+
+autoload -Uz compinit && compinit
+
 alias ga="git add"
 alias gc="git commit -m"
 alias gs="git status"
 alias gp="git push origin -u HEAD"
 alias gpom="git pull origin main"
-# Delete all local branches except main
-alias gdab="git branch | grep -v 'main' | xargs git branch -D"
-# Source machine-local config (untracked: private aliases, SSH hosts, etc.)
-[ -f ~/.zshrc.local ] && source ~/.zshrc.local
-###############################################################################
-# My custom prompt with directory and git branch, I dont want git status
-###############################################################################
-# Catppuccin Macchiato colors
-LAVENDER="%F{#b7bdf8}"
-PEACH="%F{#f5a97f}"
-RED="%F{#ed8796}"
-MAUVE="%F{#c6a0f6}"
-RESET="%f"
+alias gdab="git branch --format='%(refname:short)' | grep -vx main | xargs git branch -D"
 
-# Git branch if git repo else silent
 git_branch() {
-  local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [ -z "$branch" ]; then
-    return
-  fi
-
-  echo " ${MAUVE}${branch}${RESET}"
+  local branch
+  branch=$(git branch --show-current 2>/dev/null)
+  [[ -n $branch ]] && print -n " %F{#cba6f7}$branch%f"
 }
 
-# Build prompt
 setopt PROMPT_SUBST
 precmd() { echo }
+PROMPT='%B%F{#b4befe}🚀 %3~%f$(git_branch)
+%F{#fab387}❯%f %b'
 
-PROMPT='%B${LAVENDER}🚀 %3~${RESET}$(git_branch)
-${PEACH}❯${RESET} %b'
-###############################################################################
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 
-export PATH="$HOME/.local/bin:$PATH"
-
-export PATH="$PATH:$HOME/.cargo/bin"
+command -v fzf >/dev/null && source <(fzf --zsh)
+command -v zoxide >/dev/null && eval "$(zoxide init zsh)"
