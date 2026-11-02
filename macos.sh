@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -u
 
 defaults write com.apple.finder AppleShowAllFiles -bool true
 defaults write com.apple.finder ShowPathbar -bool true
@@ -15,10 +14,8 @@ defaults write com.apple.dock autohide-delay -float 0
 defaults write com.apple.dock autohide-time-modifier -float 0
 defaults write com.apple.dock tilesize -int 48
 defaults write com.apple.dock orientation -string bottom
-defaults write com.apple.dock magnification -bool false
 defaults write com.apple.dock minimize-to-application -bool true
 defaults write com.apple.dock show-recents -bool false
-defaults write com.apple.dock show-process-indicators -bool true
 defaults write com.apple.dock persistent-apps -array
 defaults write com.apple.dock persistent-others -array
 
@@ -59,11 +56,9 @@ done
 
 mkdir -p ~/Desktop/Screenshots
 defaults write com.apple.screencapture location -string ~/Desktop/Screenshots
-defaults write com.apple.screencapture type -string png
 defaults write com.apple.screencapture disable-shadow -bool true
 
 defaults -currentHost write com.apple.controlcenter BatteryShowPercentage -bool true
-defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
 defaults write com.apple.menuextra.clock ShowSeconds -bool true
 defaults write com.apple.menuextra.clock FlashDateSeparators -bool true
 
@@ -72,4 +67,3 @@ defaults write com.apple.ActivityMonitor IconType -int 5
 defaults write com.apple.ActivityMonitor ShowCategory -int 0
 
 killall Finder Dock SystemUIServer ControlCenter >/dev/null 2>&1
-echo "macOS defaults applied. Some take effect after a restart."
