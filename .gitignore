@@ -1,4 +1,2 @@
-# macOS drops these into stowed directories, which are symlinks into this repo
 .DS_Store
-# Private notes kept next to the config
 personal/

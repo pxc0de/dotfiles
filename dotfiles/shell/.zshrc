@@ -3,7 +3,7 @@ for prefix in /opt/homebrew /usr/local; do
 done
 
 typeset -U path
-path=(~/.local/bin $path ~/.cargo/bin)
+path=($HOMEBREW_PREFIX/opt/python/libexec/bin $HOMEBREW_PREFIX/opt/rustup/bin $path ~/.local/bin ~/.cargo/bin)
 
 export CLICOLOR=1
 
