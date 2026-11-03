@@ -2,7 +2,7 @@
 set -euo pipefail
 
 readonly DEV_USER=pxc0de
-readonly REPO_URL=https://github.com/pxc0de/config.git
+readonly REPO_URL=https://github.com/pxc0de/dotfiles.git
 
 [[ "$(uname -s)" == Darwin ]] || { echo "setup.sh only supports macOS" >&2; exit 1; }
 
@@ -35,8 +35,8 @@ elif ! load_brew; then
 fi
 
 if [[ -z "${BASH_SOURCE[0]:-}" ]]; then
-    [[ -d "$HOME/config/.git" ]] || git clone "$REPO_URL" "$HOME/config"
-    exec bash "$HOME/config/setup.sh" </dev/tty
+    [[ -d "$HOME/dotfiles/.git" ]] || git clone "$REPO_URL" "$HOME/dotfiles"
+    exec bash "$HOME/dotfiles/setup.sh" </dev/tty
 fi
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -73,7 +73,7 @@ setup_github_ssh() {
         gh api meta --jq '.ssh_keys[] | "github.com " + .' >>"$HOME/.ssh/known_hosts"
     fi
 
-    git -C "$REPO" remote set-url origin git@github.com:pxc0de/config.git
+    git -C "$REPO" remote set-url origin git@github.com:pxc0de/dotfiles.git
 }
 
 link_dotfiles() {

@@ -10,7 +10,7 @@ The Mac has two accounts. `admin` owns Homebrew and the apps and holds personal 
 2. As `admin`, run:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/pxc0de/config/main/setup.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
    ```
 
    It asks for the admin password, then a password for the new `pxc0de` account, then the admin password again so `pxc0de` can unlock FileVault. The rest runs unattended. It installs Homebrew and everything in the `Brewfile`, creates `pxc0de` as a standard user, and applies `macos.sh`.
@@ -23,7 +23,7 @@ Do not sign `pxc0de` in to your personal Apple ID or Google account, because the
 
 | Account | Command | What it does |
 |---|---|---|
-| `admin` | `cd ~/config && git pull && ./setup.sh` | Installs anything new in the `Brewfile` and upgrades every package and app. |
+| `admin` | `cd ~/dotfiles && git pull && ./setup.sh` | Installs anything new in the `Brewfile` and upgrades every package and app. |
 | `pxc0de` | `./setup.sh` | Relinks dotfiles and updates the Rust toolchain and the tmux and Neovim plugins. Commit `lazy-lock.json` if it changed. |
 
 Edit and push the repo from `pxc0de`. The `admin` copy only pulls. Neither command uninstalls anything.
