@@ -80,9 +80,6 @@ setup_agent_host() {
         exit 1
     fi
 
-    log "Keeping the Mac awake on power and restarting it after a power cut"
-    sudo pmset -c sleep 0 disksleep 0 autorestart 1 womp 1
-
     nc -z 127.0.0.1 22 2>/dev/null || log "Turn on Remote Login in System Settings > General > Sharing"
 }
 

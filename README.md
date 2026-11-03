@@ -2,7 +2,7 @@
 
 Packages, apps, dotfiles and system defaults for my Macs. It works on Apple Silicon and Intel.
 
-The Mac has two accounts. The admin account owns Homebrew and the apps and holds personal data such as the Apple ID, passwords and cards. A standard dev account, mine is `pxc0de`, is where code and agents run. From there they can use every installed tool but cannot replace it or read the admin's files.
+The Mac has two accounts. The admin account owns Homebrew and the apps and holds personal data such as the Apple ID, passwords and cards. A standard dev account is where code and agents run. From there they can use every installed tool but cannot replace it or read the admin's files.
 
 ## New Mac
 
@@ -18,7 +18,7 @@ The Mac has two accounts. The admin account owns Homebrew and the apps and holds
    To skip the name prompt, pass it in front of `bash`:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=alice bash
+   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=<dev-name> bash
    ```
 
 3. Log in to the dev account and run the same command. It opens GitHub in the browser to log in `gh`, and asks for a new SSH key passphrase, which Keychain remembers. Then it links the dotfiles, installs the Rust toolchain, and installs the tmux and Neovim plugins.
@@ -26,20 +26,19 @@ The Mac has two accounts. The admin account owns Homebrew and the apps and holds
 
 Do not sign the dev account in to your personal Apple ID or Google account, because they sync saved passwords and cards.
 
-## Always-on agent host
+## Agent host
 
-One Mac can also run always-on agents in a third, standard account that has no GitHub access and no personal data. Other Macs reach it only over [Tailscale](https://tailscale.com), only by SSH key, and only as that account.
+One Mac can also run long-running agents in a third, standard account that has no GitHub access and no personal data. Other Macs reach it only over [Tailscale](https://tailscale.com), only by SSH key, and only as that account.
 
 1. On the host, run the admin command with `AGENT_USER` as well:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=pxc0de AGENT_USER=kingleobot bash
+   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=<dev-name> AGENT_USER=<agent-name> bash
    ```
 
    Besides the usual setup, it does the following:
    - creates the agent account and adds it to an `agents` group;
-   - limits SSH to that group, with keys only;
-   - keeps the Mac awake on power and restarts it after a power cut.
+   - limits SSH to that group, with keys only.
 2. Turn on Remote Login in System Settings > General > Sharing.
 3. On the Mac you will connect from, create a key just for this host, and copy the public half:
 
@@ -52,10 +51,10 @@ One Mac can also run always-on agents in a third, standard account that has no G
 6. Connect:
 
    ```bash
-   ssh -i ~/.ssh/agent_host -t kingleobot@<host> tmux new -A -s agents
+   ssh -i ~/.ssh/agent_host -t <agent-name>@<host> tmux new -A -s agents
    ```
 
-   `<host>` is the host's name on your tailnet. Never use `ssh -A`, which would let the host use your keys.
+   `<agent-name>` is the account from step 1 and `<host>` is the host's name on your tailnet. Never use `ssh -A`, which would let the host use your keys.
 
 ## Day to day
 
