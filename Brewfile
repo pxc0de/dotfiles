@@ -1,3 +1,5 @@
+cask_args fontdir: "/Library/Fonts"
+
 brew "stow"
 brew "neovim"
 brew "tree-sitter-cli"

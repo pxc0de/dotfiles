@@ -1,2 +1,4 @@
 .DS_Store
 personal/
+dotfiles/ssh/.ssh/*
+!dotfiles/ssh/.ssh/config

@@ -8,6 +8,7 @@ defaults write com.apple.finder FXDefaultSearchScope -string SCcf
 defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
 defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
 chflags nohidden ~/Library
+chmod 700 ~
 
 defaults write com.apple.dock autohide -bool true
 defaults write com.apple.dock autohide-delay -float 0
