@@ -51,9 +51,14 @@ has_standard_user() {
 is_agent() { dseditgroup -o checkmember -m "$(id -un)" agents >/dev/null 2>&1; }
 
 create_standard_user() {
-    id "$1" >/dev/null 2>&1 && return
-    log "Creating the standard user $1. Enter a password for $1, then your own"
-    sudo sysadminctl -addUser "$1" -fullName "$1" -password - -adminUser "$(id -un)" -adminPassword -
+    if ! id "$1" >/dev/null 2>&1; then
+        log "Creating the standard user $1. macOS asks for a new password for $1 and for your own. Read each prompt"
+        sudo sysadminctl -addUser "$1" -fullName "$1" -password - -adminUser "$(id -un)" -adminPassword -
+    fi
+    if sysadminctl -secureTokenStatus "$1" 2>&1 | grep -q DISABLED; then
+        log "Letting $1 unlock FileVault. macOS asks for the password of $1 and for your own. Read each prompt"
+        sudo sysadminctl -secureTokenOn "$1" -password - -adminUser "$(id -un)" -adminPassword -
+    fi
 }
 
 create_dev_user() {
