@@ -79,6 +79,7 @@ setup_agent_host() {
     dscl . -read /Groups/agents >/dev/null 2>&1 || sudo dseditgroup -o create agents
     dseditgroup -o checkmember -m "$AGENT_USER" agents >/dev/null 2>&1 || sudo dseditgroup -o edit -a "$AGENT_USER" -t user agents
     printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nAllowGroups agents\n' | sudo tee "$conf" >/dev/null
+    sudo ssh-keygen -A >/dev/null
     if ! sudo sshd -t; then
         sudo rm -f "$conf"
         echo "The SSH settings failed validation and were not applied" >&2
