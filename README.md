@@ -6,14 +6,21 @@ The Mac has two accounts. The admin account owns Homebrew and the apps and holds
 
 ## New Mac
 
-1. In Setup Assistant, create the admin account and sign in to your Apple ID there.
-2. As admin, run:
+1. In Setup Assistant, create the admin account and sign in to your Apple ID there. Leave FileVault on.
+
+   If Safari already shows history afterwards, it came from iCloud, not from before the erase. Turn Safari off under System Settings > your name > iCloud if you don't want it on this Mac.
+
+2. As admin, open Terminal and run:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
    ```
 
-   It asks for the admin password, then for a name and password for the dev account, then the admin password again so the dev account can unlock FileVault. The rest runs unattended. It installs Homebrew and everything in the `Brewfile`, creates the dev account as a standard user, and applies `macos.sh`.
+   It asks for these, in order:
+   1. The admin password.
+   2. A name for the dev account.
+   3. A password for the dev account.
+   4. The admin password again, so the dev account can unlock FileVault.
 
    To skip the name prompt, pass it in front of `bash`:
 
@@ -21,10 +28,47 @@ The Mac has two accounts. The admin account owns Homebrew and the apps and holds
    curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=<dev-name> bash
    ```
 
-3. Log in to the dev account and run the same command. It opens GitHub in the browser to log in `gh`, and asks for a new SSH key passphrase, which Keychain remembers. Then it links the dotfiles, installs the Rust toolchain, and installs the tmux and Neovim plugins.
-4. Restart.
+   The rest runs unattended and takes a while the first time. It installs the Xcode Command Line Tools, Homebrew and everything in the `Brewfile`, creates the dev account as a standard user, and applies `macos.sh`. Approve any macOS permission dialog that appears. It ends with `Done. Log in to each standard account and run the same setup command there`. Warnings above that line mean one step failed and the rest still ran.
 
-Do not sign the dev account in to your personal Apple ID or Google account, because they sync saved passwords and cards.
+3. Log in to the dev account. When its Setup Assistant asks for an Apple ID, choose Set Up Later. This account stays signed out of iCloud and Google, because they would sync your saved passwords, cards and history into it.
+
+4. As dev, open Terminal and run the same command, without `DEV_USER`. It asks for these:
+   1. GitHub login. It shows a one-time code and opens GitHub in the browser. Sign in there and enter the code.
+   2. A passphrase for the new SSH key, twice, then once more so Keychain remembers it.
+
+   Then it links the dotfiles and installs the Rust toolchain and the tmux and Neovim plugins. It ends with `Done. Commit lazy-lock.json if it changed`.
+
+5. Restart.
+
+## Check it
+
+As dev, open Ghostty from Applications and approve the first-launch dialog. The prompt should show a rocket and the current folder, with no empty boxes.
+
+| Command | Expected |
+|---|---|
+| `ssh -T git@github.com` | `Hi <github-user>! You've successfully authenticated` |
+| `git -C ~/dotfiles remote get-url origin` | An SSH URL starting `git@github.com:` |
+| `git config user.email` | The email in `dotfiles/git/.config/git/config` |
+| `which nvim node python cargo claude` | All under `/opt/homebrew` on Apple Silicon or `/usr/local` on Intel |
+| `npm config get ignore-scripts` | `true` |
+| `ls /Users/<admin-name>` | `Permission denied` |
+| `touch "$(brew --prefix)/bin/test"` | `Permission denied` |
+| `sudo true` | Refused, because the dev account is not an administrator |
+| `nvim ~/dotfiles/setup.sh` | Opens in colour with no errors. The first launch installs language servers and parsers in the background. |
+| `tmux` | A Catppuccin status bar. Leave with `exit`. |
+
+Safari in the dev account should have no history.
+
+As admin:
+
+| Command | Expected |
+|---|---|
+| `ls -ld ~` | Starts with `drwx------` |
+| `brew bundle check --file ~/dotfiles/Brewfile` | `The Brewfile's dependencies are satisfied.` |
+| `ls /Library/Fonts \| grep -c JetBrains` | A number above 0 |
+| `sudo fdesetup list` | Both the admin and the dev account |
+
+After a restart, the FileVault login screen shows both accounts, and either one unlocks the disk.
 
 ## Agent host
 
@@ -56,6 +100,16 @@ One Mac can also run long-running agents in a third, standard account that has n
 
    `<agent-name>` is the account from step 1 and `<host>` is the host's name on your tailnet. Never use `ssh -A`, which would let the host use your keys.
 
+To check it, run these from the connecting Mac:
+
+| Command | Expected |
+|---|---|
+| `ssh -i ~/.ssh/agent_host <agent-name>@<host> whoami` | `<agent-name>` |
+| `ssh <dev-name>@<host>` | `Permission denied (publickey)` |
+| `ssh -o PubkeyAuthentication=no <agent-name>@<host>` | `Permission denied`, with no password prompt |
+
+The Tailscale admin console runs the tests in `tailscale.json` when you save the policy, and refuses to save if one fails.
+
 ## Day to day
 
 | Account | Command | What it does |
@@ -66,7 +120,7 @@ One Mac can also run long-running agents in a third, standard account that has n
 
 On the agent host, pass `AGENT_USER` to the admin command again whenever the host settings change.
 
-Edit and push the repo from the dev account. The admin copy only pulls. Neither command uninstalls anything, and once a standard account exists the admin run no longer asks for a name.
+Edit and push the repo from the dev account. The admin copy only pulls. Neither command uninstalls anything, and once a standard account exists the admin run no longer asks for a name. Running any of them again is safe and skips what is already done.
 
 ## Using it yourself
 
