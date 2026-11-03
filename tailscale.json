@@ -1,0 +1,13 @@
+{
+  "tagOwners": {
+    "tag:laptop": ["autogroup:admin"],
+    "tag:agent-host": ["autogroup:admin"]
+  },
+  "grants": [
+    { "src": ["tag:laptop"], "dst": ["tag:agent-host"], "ip": ["tcp:22"] }
+  ],
+  "tests": [
+    { "src": "tag:laptop", "accept": ["tag:agent-host:22"], "deny": ["tag:agent-host:80"] },
+    { "src": "tag:agent-host", "deny": ["tag:laptop:22"] }
+  ]
+}

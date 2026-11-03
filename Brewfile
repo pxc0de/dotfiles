@@ -18,6 +18,7 @@ brew "rustup"
 
 cask "font-jetbrains-mono-nerd-font"
 cask "ghostty"
+cask "tailscale-app"
 cask "claude-code"
 cask "claude"
 cask "google-chrome"

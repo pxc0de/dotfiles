@@ -48,6 +48,14 @@ has_standard_user() {
     return 1
 }
 
+is_agent() { dseditgroup -o checkmember -m "$(id -un)" agents >/dev/null 2>&1; }
+
+create_standard_user() {
+    id "$1" >/dev/null 2>&1 && return
+    log "Creating the standard user $1. Enter a password for $1, then your own"
+    sudo sysadminctl -addUser "$1" -fullName "$1" -password - -adminUser "$(id -un)" -adminPassword -
+}
+
 create_dev_user() {
     local name="${DEV_USER:-}"
     if [[ -z "$name" ]]; then
@@ -55,13 +63,32 @@ create_dev_user() {
         read -r -p "Name for the standard dev account: " name
         [[ -n "$name" ]] || { echo "No account name given" >&2; exit 1; }
     fi
-    id "$name" >/dev/null 2>&1 && return
-    log "Creating the standard user $name. Enter a password for $name, then your own"
-    sudo sysadminctl -addUser "$name" -fullName "$name" -password - -adminUser "$(id -un)" -adminPassword -
+    create_standard_user "$name"
+}
+
+setup_agent_host() {
+    local conf=/etc/ssh/sshd_config.d/000-agents.conf
+    create_standard_user "$AGENT_USER"
+
+    log "Allowing only the agents group to log in over SSH, with keys only"
+    dscl . -read /Groups/agents >/dev/null 2>&1 || sudo dseditgroup -o create agents
+    dseditgroup -o checkmember -m "$AGENT_USER" agents >/dev/null 2>&1 || sudo dseditgroup -o edit -a "$AGENT_USER" -t user agents
+    printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nAllowGroups agents\n' | sudo tee "$conf" >/dev/null
+    if ! sudo sshd -t; then
+        sudo rm -f "$conf"
+        echo "The SSH settings failed validation and were not applied" >&2
+        exit 1
+    fi
+
+    log "Keeping the Mac awake on power and restarting it after a power cut"
+    sudo pmset -c sleep 0 disksleep 0 autorestart 1 womp 1
+
+    nc -z 127.0.0.1 22 2>/dev/null || log "Turn on Remote Login in System Settings > General > Sharing"
 }
 
 setup_admin() {
     create_dev_user
+    [[ -z "${AGENT_USER:-}" ]] || setup_agent_host
 
     log "Installing and upgrading everything in the Brewfile"
     try brew update
@@ -97,19 +124,26 @@ setup_github_ssh() {
 }
 
 link_dotfiles() {
-    local package rel target
+    local package dir rel target
     log "Linking dotfiles"
     mkdir -p "$HOME/.config"
-    for package in "$REPO"/dotfiles/*/; do
+    for package in ${@:-$(ls "$REPO/dotfiles")}; do
+        dir="$REPO/dotfiles/$package/"
         while IFS= read -r rel; do
             target="$HOME/$rel"
-            if [[ -e "$target" || -L "$target" ]] && [[ "$(realpath "$target" 2>/dev/null)" != "$(realpath "$package$rel")" ]]; then
+            if [[ -e "$target" || -L "$target" ]] && [[ "$(realpath "$target" 2>/dev/null)" != "$(realpath "$dir$rel")" ]]; then
                 log "Moving $target to $target.bak"
                 mv "$target" "$target.bak"
             fi
-        done < <(cd "$package" && find . -type f | sed 's|^\./||')
-        stow -R -t "$HOME" -d "$REPO/dotfiles" "$(basename "$package")"
+        done < <(cd "$dir" && find . -type f | sed 's|^\./||')
+        stow -R -t "$HOME" -d "$REPO/dotfiles" "$package"
     done
+}
+
+update_tmux_plugins() {
+    log "Installing and updating tmux plugins"
+    try "$HOMEBREW_PREFIX/opt/tpm/share/tpm/bin/install_plugins"
+    try "$HOMEBREW_PREFIX/opt/tpm/share/tpm/bin/update_plugins" all
 }
 
 setup_dev() {
@@ -122,16 +156,30 @@ setup_dev() {
     try "$HOMEBREW_PREFIX/opt/rustup/bin/rustup" default stable
     try "$HOMEBREW_PREFIX/opt/rustup/bin/rustup" update
 
-    log "Installing and updating tmux plugins"
-    try "$HOMEBREW_PREFIX/opt/tpm/share/tpm/bin/install_plugins"
-    try "$HOMEBREW_PREFIX/opt/tpm/share/tpm/bin/update_plugins" all
+    update_tmux_plugins
 
     log "Installing and updating Neovim plugins"
     try nvim --headless "+Lazy! sync" +qa
 }
 
+setup_agent() {
+    local key
+    mkdir -p -m 700 "$HOME/.ssh"
+    if [[ ! -s "$HOME/.ssh/authorized_keys" ]]; then
+        read -r -p "Public SSH key allowed to log in as $(id -un): " key
+        printf '%s\n' "$key" | ssh-keygen -lf - >/dev/null 2>&1 || { echo "That is not a valid public SSH key" >&2; exit 1; }
+        printf '%s\n' "$key" >"$HOME/.ssh/authorized_keys"
+        chmod 600 "$HOME/.ssh/authorized_keys"
+    fi
+
+    link_dotfiles shell tmux npm
+    update_tmux_plugins
+}
+
 if is_admin; then
     setup_admin
+elif is_agent; then
+    setup_agent
 else
     setup_dev
 fi
@@ -140,7 +188,9 @@ log "Applying macOS defaults"
 try bash "$REPO/macos.sh"
 
 if is_admin; then
-    log "Done. Log in to the standard account and run the same setup command there"
+    log "Done. Log in to each standard account and run the same setup command there"
+elif is_agent; then
+    log "Done. Sign in to Tailscale if this Mac is not on your tailnet yet"
 else
     log "Done. Commit lazy-lock.json if it changed"
 fi
