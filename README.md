@@ -19,8 +19,8 @@ The Mac has two accounts. The admin account owns Homebrew and the apps and holds
    It asks for these, in order:
    1. The admin password.
    2. A name for the dev account.
-   3. The admin password again, so the dev account can unlock FileVault.
-   4. A new password for the dev account.
+   3. A new password for the dev account.
+   4. The admin password, then the dev password again, so the dev account can unlock FileVault.
 
    To skip the name prompt, pass it in front of `bash`:
 
