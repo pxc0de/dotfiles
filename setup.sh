@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly DEV_USER=pxc0de
 readonly REPO_URL=https://github.com/pxc0de/dotfiles.git
 
 [[ "$(uname -s)" == Darwin ]] || { echo "setup.sh only supports macOS" >&2; exit 1; }
@@ -41,11 +40,28 @@ fi
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-setup_admin() {
-    if ! id "$DEV_USER" >/dev/null 2>&1; then
-        log "Creating the standard user $DEV_USER. Enter a password for $DEV_USER, then your own"
-        sudo sysadminctl -addUser "$DEV_USER" -fullName "$DEV_USER" -password - -adminUser "$(id -un)" -adminPassword -
+has_standard_user() {
+    local user
+    for user in $(dscl . -list /Users UniqueID | awk '$2 >= 501 { print $1 }'); do
+        dseditgroup -o checkmember -m "$user" admin >/dev/null 2>&1 || return 0
+    done
+    return 1
+}
+
+create_dev_user() {
+    local name="${DEV_USER:-}"
+    if [[ -z "$name" ]]; then
+        has_standard_user && return
+        read -r -p "Name for the standard dev account: " name
+        [[ -n "$name" ]] || { echo "No account name given" >&2; exit 1; }
     fi
+    id "$name" >/dev/null 2>&1 && return
+    log "Creating the standard user $name. Enter a password for $name, then your own"
+    sudo sysadminctl -addUser "$name" -fullName "$name" -password - -adminUser "$(id -un)" -adminPassword -
+}
+
+setup_admin() {
+    create_dev_user
 
     log "Installing and upgrading everything in the Brewfile"
     try brew update
@@ -73,7 +89,11 @@ setup_github_ssh() {
         gh api meta --jq '.ssh_keys[] | "github.com " + .' >>"$HOME/.ssh/known_hosts"
     fi
 
-    git -C "$REPO" remote set-url origin git@github.com:pxc0de/dotfiles.git
+    local origin
+    origin="$(git -C "$REPO" remote get-url origin)"
+    if [[ "$origin" =~ ^https://github\.com/(.+)$ ]]; then
+        git -C "$REPO" remote set-url origin "git@github.com:${BASH_REMATCH[1]%.git}.git"
+    fi
 }
 
 link_dotfiles() {
@@ -120,7 +140,7 @@ log "Applying macOS defaults"
 try bash "$REPO/macos.sh"
 
 if is_admin; then
-    log "Done. Log in as $DEV_USER and run the same setup command there"
+    log "Done. Log in to the standard account and run the same setup command there"
 else
     log "Done. Commit lazy-lock.json if it changed"
 fi
