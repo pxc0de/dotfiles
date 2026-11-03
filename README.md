@@ -82,7 +82,7 @@ One Mac can also run long-running agents in a third, standard account that has n
    Besides the usual setup, it does the following:
    - creates the agent account and adds it to an `agents` group;
    - limits SSH to that group, with keys only.
-2. Turn on Remote Login in System Settings > General > Sharing.
+2. Turn on Remote Login in System Settings > General > Sharing. Click ⓘ next to it, set "Allow access for" to Only these users, remove Administrators and add the `agents` group. Leave full disk access for remote users off.
 3. On the Mac you will connect from, create a key just for this host, and copy the public half:
 
    ```bash
