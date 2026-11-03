@@ -1,64 +1,88 @@
 # dotfiles
 
-Packages, apps, dotfiles and system defaults for my Macs. It works on Apple Silicon and Intel.
+One command sets up a Mac for coding, with tools, apps, editor, terminal and system settings. It works on Apple Silicon and Intel Macs.
 
-The Mac has two accounts. The admin account owns Homebrew and the apps and holds personal data such as the Apple ID, passwords and cards. A standard dev account is where code and agents run. From there they can use every installed tool but cannot replace it or read the admin's files.
+The Mac gets separate accounts, so that code you run can't reach your personal data:
+
+| Account | Kind | What it holds |
+|---|---|---|
+| admin | Administrator | Your Apple ID, saved passwords, cards and personal files. Owns Homebrew and the apps. |
+| dev | Standard | Your code. Uses every installed tool, but can't change them or read the admin's files. |
+| agent | Standard, optional | Long-running AI agents on one Mac, reached from your other Mac over SSH. No GitHub access and no personal data. |
+
+You pick the account names. This README writes them as `<admin-name>`, `<dev-name>` and `<agent-name>`.
+
+## Before you start
+
+- **Running the command again is always safe.** It updates its own copy of this repo, then skips whatever is already done. If a step fails, fix the cause and run the same command again.
+- **Read every password prompt before typing.** Several look alike, and each one names the account it wants. The steps below list them in order.
+- **To share Terminal output, save it to a file** rather than taking a screenshot. Add `2>&1 | tee ~/Desktop/output.txt` to the end of any command. You still see everything and can still type passwords.
+- **To move a file between your Macs, use AirDrop.** Universal Control and the shared clipboard need the same Apple ID on both Macs, and the dev and agent accounts have none. On the receiving account, open Control Center > AirDrop and choose Everyone for 10 Minutes. On the sending Mac, right-click the file and choose Share > AirDrop. The file lands in the receiver's Downloads folder.
 
 ## New Mac
 
-1. In Setup Assistant, create the admin account and sign in to your Apple ID there. Leave FileVault on.
+### 1. Admin account
 
-   If Safari already shows history afterwards, it came from iCloud, not from before the erase. Turn Safari off under System Settings > your name > iCloud if you don't want it on this Mac.
+1. Erase the Mac, or start from a new one. In Setup Assistant, create the admin account and sign in to your Apple ID. Leave FileVault on.
 
-2. As admin, open Terminal and run:
+   Safari may already show your history. It came back from iCloud, not from before the erase. If you don't want it on this Mac, turn Safari off under System Settings > your name > iCloud.
 
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
-   ```
-
-   It asks for these, in order:
-   1. The admin password.
-   2. A name for the dev account.
-   3. A new password for the dev account.
-
-   To skip the name prompt, pass it in front of `bash`:
+2. Open Terminal (press ⌘Space, type Terminal, press Enter) and run:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=<dev-name> bash
    ```
 
-   The rest runs unattended and takes a while the first time. It installs the Xcode Command Line Tools, Homebrew and everything in the `Brewfile`, creates the dev account as a standard user, and applies `macos.sh`. Homebrew asks for the admin password again before each app that ships as an installer package, such as Tailscale. Approve any macOS permission dialog that appears. It ends with `Done. Log in to each standard account and run the same setup command there`. Warnings above that line mean one step failed and the rest still ran.
+   It asks for these, in order:
+   1. `Password:` is your admin password.
+   2. `User password:` is a new password for the dev account. You type it at login and at the FileVault screen after a restart.
 
-3. Log in to the dev account. When its Setup Assistant asks for an Apple ID, choose Set Up Later. This account stays signed out of iCloud and Google, because they would sync your saved passwords, cards and history into it.
+   If you leave out `DEV_USER=<dev-name>`, it asks for the name first.
 
-4. As dev, open Terminal and run the same command, without `DEV_USER`. It asks for these:
-   1. GitHub login. It shows a one-time code and opens GitHub in the browser. Sign in there and enter the code.
-   2. A passphrase for the new SSH key, twice, then once more so Keychain remembers it.
+   The rest takes a while the first time. It installs the Xcode Command Line Tools, Homebrew and everything in the `Brewfile`, creates the dev account, and applies the system settings in `macos.sh`. Along the way:
+   - Homebrew asks for your admin password again before apps that use an installer, such as Tailscale and NordVPN. That's normal.
+   - Approve any macOS permission dialog that appears.
 
-   Then it links the dotfiles and installs the Rust toolchain and the tmux and Neovim plugins. It ends with `Done. Commit lazy-lock.json if it changed`.
+   It's finished when it prints `Done. Log in to each standard account and run the same setup command there`. A yellow `warning:` line means one step failed and the rest still ran. Run the command again.
 
-5. Restart.
+### 2. Dev account
 
-## Check it
+1. Choose Apple menu > Log Out, and log in to the dev account. Its first login runs a short Setup Assistant. When it asks for an Apple ID, choose **Set Up Later**. Never sign this account in to iCloud or Google, because they would sync your saved passwords, cards and history into it.
 
-As dev, open Ghostty from Applications and approve the first-launch dialog. The prompt should show a rocket and the current folder, with no empty boxes.
+2. Open Terminal and run:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
+   ```
+
+   It asks for these:
+   1. **GitHub login.** It shows a one-time code. Press Enter to open GitHub in Safari. Sign in, using a passkey from your phone if you have one, and enter the code. If Safari offers to save your password, choose Never.
+   2. **A passphrase for a new SSH key,** twice. Then once more, so Keychain remembers it and you won't be asked again.
+
+   Then it links the dotfiles and installs the Rust toolchain and the tmux and Neovim plugins. It's finished when it prints `Done. Commit lazy-lock.json if it changed`.
+
+3. Restart the Mac.
+
+### 3. Check it
+
+In the dev account, open Ghostty from Applications. The first time, macOS asks whether to open an app downloaded from the internet. Click Open. The prompt should show a rocket and the current folder, with no empty boxes. Then run each command:
 
 | Command | Expected |
 |---|---|
 | `ssh -T git@github.com` | `Hi <github-user>! You've successfully authenticated` |
-| `git -C ~/dotfiles remote get-url origin` | An SSH URL starting `git@github.com:` |
+| `git -C ~/dotfiles remote get-url origin` | Starts with `git@github.com:` |
 | `git config user.email` | The email in `dotfiles/git/.config/git/config` |
-| `which nvim node python cargo claude` | All under `/opt/homebrew` on Apple Silicon or `/usr/local` on Intel |
+| `which nvim node python cargo claude` | All under `/opt/homebrew` on Apple Silicon, or `/usr/local` on Intel |
 | `npm config get ignore-scripts` | `true` |
 | `ls /Users/<admin-name>` | `Permission denied` |
 | `touch "$(brew --prefix)/bin/test"` | `Permission denied` |
 | `sudo true` | Refused, because the dev account is not an administrator |
-| `nvim ~/dotfiles/setup.sh` | Opens in colour with no errors. The first launch installs language servers and parsers in the background. |
-| `tmux` | A Catppuccin status bar. Leave with `exit`. |
+| `nvim ~/dotfiles/setup.sh` | Opens in colour with no errors. The first launch installs language servers in the background. Quit with `:q`. |
+| `tmux` | A coloured status bar at the bottom. Leave with `exit`. |
 
 Safari in the dev account should have no history.
 
-As admin:
+Then in the admin account:
 
 | Command | Expected |
 |---|---|
@@ -67,39 +91,93 @@ As admin:
 | `ls /Library/Fonts \| grep -c JetBrains` | A number above 0 |
 | `sudo fdesetup list` | Both the admin and the dev account |
 
-After a restart, the FileVault login screen shows both accounts, and either one unlocks the disk.
+After a restart, the FileVault screen shows both accounts, and either one unlocks the Mac.
 
 ## Agent host
 
-One Mac can also run long-running agents in a third, standard account that has no GitHub access and no personal data. Other Macs reach it only over [Tailscale](https://tailscale.com), only by SSH key, and only as that account.
+Do this on the Mac that will run long-running agents. The other Mac connects to it, by SSH key only, as the agent account only, over [Tailscale](https://tailscale.com). Tailscale is a private network between your own devices that works from anywhere. These steps call the two Macs the host and the laptop.
 
-1. On the host, run the admin command with `AGENT_USER` as well:
+### 1. Host admin account
+
+Follow [New Mac](#new-mac) step 1, adding `AGENT_USER` to the command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=<dev-name> AGENT_USER=<agent-name> bash
+```
+
+After the dev account, it creates the agent account, with one more `User password:` prompt for it. Then it limits SSH to that account, with keys only.
+
+It prints `Remote Login is off`, because a script can't turn it on. Do it yourself:
+
+1. Open System Settings > General > Sharing and turn on **Remote Login**.
+2. Click ⓘ next to it.
+3. Set **Allow access for** to Only these users. Select Administrators and click −. Click + and add the **agents** group.
+4. Leave **Allow full disk access for remote users** off.
+
+The `ssh <admin-name>@…` hint in that window won't work. That's intended.
+
+Then set up the host's dev account as in [New Mac](#new-mac) step 2.
+
+### 2. Key on the laptop
+
+In the laptop's dev account, create a key used only for the host:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/agent_host
+```
+
+Press Enter at the passphrase prompt to leave it empty, or set one. Then show the public half in Finder, ready to AirDrop:
+
+```bash
+open -R ~/.ssh/agent_host.pub
+```
+
+Only ever send `agent_host.pub`. The file without `.pub` is the private key and stays on the laptop.
+
+### 3. Host agent account
+
+1. Log in to the agent account on the host. Choose Set Up Later for the Apple ID.
+2. Open Control Center > AirDrop > Everyone for 10 Minutes. On the laptop, right-click `agent_host.pub` and choose Share > AirDrop, then pick the host. Accept it on the host.
+3. In Terminal, copy the key, then run the setup:
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=<dev-name> AGENT_USER=<agent-name> bash
+   pbcopy < ~/Downloads/agent_host.pub
+   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
    ```
 
-   Besides the usual setup, it does the following:
-   - creates the agent account and adds it to an `agents` group;
-   - limits SSH to that group, with keys only.
-2. Turn on Remote Login in System Settings > General > Sharing. Click ⓘ next to it, set "Allow access for" to Only these users, remove Administrators and add the `agents` group. Leave full disk access for remote users off.
-3. On the Mac you will connect from, create a key just for this host, and copy the public half:
+   At `Public SSH key allowed to log in as <agent-name>:`, press ⌘V, then Enter. It links the shell, tmux and npm settings, and ends with `Done. Sign in to Tailscale if this Mac is not on your tailnet yet`.
+
+4. Try it from the laptop over your home network first. Find the host's address under System Settings > General > Sharing > Remote Login on the host.
 
    ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/agent_host && cat ~/.ssh/agent_host.pub
+   ssh -i ~/.ssh/agent_host <agent-name>@<host-address> whoami
    ```
 
-4. On the host, log in to the agent account and run the setup command. Paste the public key when asked. It links only the shell, tmux and npm settings.
-5. Open Tailscale on both Macs and sign in with the same account, protected by two-factor. In the Tailscale admin console, paste `tailscale.json` into Access controls. Then tag the host `tag:agent-host` and the other Mac `tag:laptop`. The policy allows SSH from `tag:laptop` to `tag:agent-host` and nothing else, so other devices on your tailnet lose access until you add rules for them.
-6. Connect:
+   The first time, type `yes` to trust the host. It should print `<agent-name>`.
 
-   ```bash
-   ssh -i ~/.ssh/agent_host -t <agent-name>@<host> tmux new -A -s agents
-   ```
+### 4. Tailscale
 
-   `<agent-name>` is the account from step 1 and `<host>` is the host's name on your tailnet. Never use `ssh -A`, which would let the host use your keys.
+1. On each Mac, log in to the admin account and open Tailscale from Applications. Allow the system extension and VPN configuration when macOS asks. Then sign in with the same Tailscale login on both Macs, using one protected by two-factor.
+2. On the laptop, log in to the dev account and open Tailscale there too. It should show as connected without signing in again.
+3. Open the [Tailscale admin console](https://login.tailscale.com/admin). Go to **Access controls**, replace everything with the contents of `tailscale.json`, and save. The console runs the tests in the file and refuses to save if one fails.
+4. Go to **Machines**. For each Mac, open the ⋯ menu, choose Edit ACL tags, and add `tag:agent-host` to the host and `tag:laptop` to the laptop. The policy allows SSH from the laptop to the host and nothing else. Any other device on your tailnet loses access until you add rules for it.
+5. The **Machines** page shows the host's name, for example `my-imac`. That's `<host>` from here on.
 
-To check it, run these from the connecting Mac:
+### 5. Connect
+
+From the laptop's dev account:
+
+```bash
+ssh -i ~/.ssh/agent_host -t <agent-name>@<host> tmux new -A -s agents
+```
+
+This opens a tmux session called `agents` on the host. If one is already running, it reattaches to it. Detach with ctrl+a, then d. The agents keep running.
+
+Never add `-A` to `ssh`. It would let the host use your laptop's keys.
+
+### 6. Check it
+
+From the laptop:
 
 | Command | Expected |
 |---|---|
@@ -107,28 +185,32 @@ To check it, run these from the connecting Mac:
 | `ssh <dev-name>@<host>` | `Permission denied (publickey)` |
 | `ssh -o PubkeyAuthentication=no <agent-name>@<host>` | `Permission denied`, with no password prompt |
 
-The Tailscale admin console runs the tests in `tailscale.json` when you save the policy, and refuses to save if one fails.
+Then log out of every account on the host except the agent account, and run the first command again. If it fails, Tailscale stopped when its account logged out.
 
 ## Day to day
 
-| Account | Command | What it does |
-|---|---|---|
-| admin | `cd ~/dotfiles && git pull && ./setup.sh` | Installs anything new in the `Brewfile` and upgrades every package and app. |
-| dev | `./setup.sh` | Relinks dotfiles and updates the Rust toolchain and the tmux and Neovim plugins. Commit `lazy-lock.json` if it changed. |
-| agent | `./setup.sh` | Relinks the shell, tmux and npm settings and updates the tmux plugins. |
+Run the same command in each account whenever you want updates:
 
-On the agent host, pass `AGENT_USER` to the admin command again whenever the host settings change.
+```bash
+curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
+```
 
-Edit and push the repo from the dev account. The admin copy only pulls. Neither command uninstalls anything, and once a standard account exists the admin run no longer asks for a name. Running any of them again is safe and skips what is already done.
+| Account | What it does |
+|---|---|
+| admin | Installs anything new in the `Brewfile` and upgrades every tool and app. On the agent host, add `AGENT_USER=<agent-name>` before `bash`. |
+| dev | Relinks the dotfiles and updates the Rust toolchain and the tmux and Neovim plugins. Commit `lazy-lock.json` if it changed. |
+| agent | Relinks the shell, tmux and npm settings and updates the tmux plugins. |
+
+Make changes to this repo from the dev account, then push them. The other accounts only pull. Nothing is ever uninstalled. If a dotfile was in the way of a link, it's moved aside to a `.bak` file, never deleted.
 
 ## Using it yourself
 
-Fork the repo, then change these before running it:
+Fork the repo, then change these before you run it:
 
 | File | Change |
 |---|---|
 | `setup.sh` | `REPO_URL` on line 4, to your fork. |
-| `README.md` | The `curl` URLs above. |
+| `README.md` | The `curl` URLs, to your fork. |
 | `dotfiles/git/.config/git/config` | Your git name and email. |
 | `Brewfile` | The tools and apps you want. |
 
@@ -136,12 +218,12 @@ Fork the repo, then change these before running it:
 
 | Path | Contents |
 |---|---|
-| `Brewfile` | Every installed tool and app. Fonts install for all users. |
+| `Brewfile` | Every installed tool and app. Fonts install for all accounts. |
 | `setup.sh` | The setup for whichever account runs it. |
-| `macos.sh` | Per-user system preferences, including a home folder only its owner can open. |
-| `tailscale.json` | The Tailscale access policy for the agent host, with tests that block edits opening more. |
-| `dotfiles/` | One [GNU Stow](https://www.gnu.org/software/stow/) package per program, linked into the dev account's home. |
+| `macos.sh` | Per-account system settings, including a home folder only its owner can open. |
+| `tailscale.json` | The Tailscale access policy for the agent host, with tests that block edits that would open more. |
+| `dotfiles/` | One [GNU Stow](https://www.gnu.org/software/stow/) package per program, linked into the account's home folder. |
 
-`dotfiles/npm/.npmrc` turns off npm install scripts, the usual entry point for supply-chain attacks. Allow them for one install with `npm install --ignore-scripts=false`.
+`dotfiles/npm/.npmrc` turns off npm install scripts, the usual way supply-chain attacks get in. Allow them for one install with `npm install --ignore-scripts=false`.
 
-Machine-local shell settings, such as private aliases and SSH hosts, go in `~/.zshrc.local`. That file is not in the repo.
+Settings for one Mac only, such as private aliases and SSH hosts, go in `~/.zshrc.local`. That file is not in the repo.

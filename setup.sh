@@ -34,7 +34,11 @@ elif ! load_brew; then
 fi
 
 if [[ -z "${BASH_SOURCE[0]:-}" ]]; then
-    [[ -d "$HOME/dotfiles/.git" ]] || git clone "$REPO_URL" "$HOME/dotfiles"
+    if [[ -d "$HOME/dotfiles/.git" ]]; then
+        try git -C "$HOME/dotfiles" pull --ff-only
+    else
+        git clone "$REPO_URL" "$HOME/dotfiles"
+    fi
     exec bash "$HOME/dotfiles/setup.sh" </dev/tty
 fi
 
