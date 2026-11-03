@@ -28,7 +28,7 @@ The Mac has two accounts. The admin account owns Homebrew and the apps and holds
    curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | DEV_USER=<dev-name> bash
    ```
 
-   The rest runs unattended and takes a while the first time. It installs the Xcode Command Line Tools, Homebrew and everything in the `Brewfile`, creates the dev account as a standard user, and applies `macos.sh`. Approve any macOS permission dialog that appears. It ends with `Done. Log in to each standard account and run the same setup command there`. Warnings above that line mean one step failed and the rest still ran.
+   The rest runs unattended and takes a while the first time. It installs the Xcode Command Line Tools, Homebrew and everything in the `Brewfile`, creates the dev account as a standard user, and applies `macos.sh`. Homebrew asks for the admin password again before each app that ships as an installer package, such as Tailscale. Approve any macOS permission dialog that appears. It ends with `Done. Log in to each standard account and run the same setup command there`. Warnings above that line mean one step failed and the rest still ran.
 
 3. Log in to the dev account. When its Setup Assistant asks for an Apple ID, choose Set Up Later. This account stays signed out of iCloud and Google, because they would sync your saved passwords, cards and history into it.
 
