@@ -86,7 +86,7 @@ setup_agent_host() {
         exit 1
     fi
 
-    nc -z 127.0.0.1 22 2>/dev/null || log "Turn on Remote Login in System Settings > General > Sharing"
+    nc -z 127.0.0.1 22 2>/dev/null || log "Remote Login is off. Turn it on in System Settings > General > Sharing so other Macs can reach $AGENT_USER over SSH"
 }
 
 setup_admin() {
