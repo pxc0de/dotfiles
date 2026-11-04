@@ -1,9 +1,5 @@
-for prefix in /opt/homebrew /usr/local; do
-  [[ -x $prefix/bin/brew ]] && eval "$($prefix/bin/brew shellenv)" && break
-done
-
 typeset -U path
-path=($HOMEBREW_PREFIX/opt/python/libexec/bin $HOMEBREW_PREFIX/opt/rustup/bin $path ~/.local/bin ~/.cargo/bin)
+path=($HOMEBREW_PREFIX/opt/python/libexec/bin $HOMEBREW_PREFIX/opt/rustup/bin $HOMEBREW_PREFIX/bin $HOMEBREW_PREFIX/sbin $path ~/.local/bin ~/.cargo/bin)
 
 export CLICOLOR=1
 
