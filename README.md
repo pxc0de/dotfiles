@@ -158,7 +158,7 @@ Only ever send `agent_host.pub`. The file without `.pub` is the private key and 
 ### 4. Tailscale
 
 1. On each Mac, log in to the admin account and open Tailscale from Applications. Allow the system extension and VPN configuration when macOS asks. Then sign in with the same Tailscale login on both Macs, using one protected by two-factor.
-2. On the laptop, log in to the dev account and open Tailscale there too. It should show as connected without signing in again.
+2. Tailscale keeps a separate sign-in for each account. Open it and sign in again in the laptop's dev account and in the host's agent account.
 3. Open the [Tailscale admin console](https://login.tailscale.com/admin). Go to **Access controls**, replace everything with the contents of `tailscale.json`, and save. The console runs the tests in the file and refuses to save if one fails.
 4. Go to **Machines**. For each Mac, open the ⋯ menu, choose Edit ACL tags, and add `tag:agent-host` to the host and `tag:laptop` to the laptop. The policy allows SSH from the laptop to the host and nothing else. Any other device on your tailnet loses access until you add rules for it.
 5. The **Machines** page shows the host's name, for example `my-imac`. That's `<host>` from here on.
