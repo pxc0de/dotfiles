@@ -3,7 +3,7 @@ path=($HOMEBREW_PREFIX/opt/python/libexec/bin $HOMEBREW_PREFIX/opt/rustup/bin $H
 
 export CLICOLOR=1
 
-autoload -Uz compinit && compinit
+autoload -Uz compinit && compinit -u
 
 alias ga="git add"
 alias gc="git commit -m"
