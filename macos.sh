@@ -46,9 +46,12 @@ defaults -currentHost write NSGlobalDomain com.apple.mouse.tapBehavior -int 1
 defaults write NSGlobalDomain com.apple.trackpad.scaling -float 3
 defaults write NSGlobalDomain com.apple.mouse.scaling -float 3
 defaults write NSGlobalDomain ContextMenuGesture -int 1
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.enableSecondaryClick -bool true
+defaults -currentHost write NSGlobalDomain com.apple.trackpad.trackpadCornerClickBehavior -int 1
 for domain in com.apple.AppleMultitouchTrackpad com.apple.driver.AppleBluetoothMultitouch.trackpad; do
     defaults write "$domain" Clicking -bool true
     defaults write "$domain" TrackpadRightClick -bool true
+    defaults write "$domain" TrackpadCornerSecondaryClick -int 2
     defaults write "$domain" TrackpadThreeFingerDrag -bool true
 done
 for domain in com.apple.AppleMultitouchMouse com.apple.driver.AppleBluetoothMultitouch.mouse; do
