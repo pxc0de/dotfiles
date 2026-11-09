@@ -1,13 +1,15 @@
 {
   "tagOwners": {
     "tag:laptop": ["autogroup:admin"],
-    "tag:agent-host": ["autogroup:admin"]
+    "tag:phone": ["autogroup:admin"],
+    "tag:desktop": ["autogroup:admin"]
   },
   "grants": [
-    { "src": ["tag:laptop"], "dst": ["tag:agent-host"], "ip": ["tcp:22"] }
+    { "src": ["tag:laptop", "tag:phone"], "dst": ["tag:desktop"], "ip": ["tcp:22"] }
   ],
   "tests": [
-    { "src": "tag:laptop", "accept": ["tag:agent-host:22"], "deny": ["tag:agent-host:80"] },
-    { "src": "tag:agent-host", "deny": ["tag:laptop:22"] }
+    { "src": "tag:laptop", "accept": ["tag:desktop:22"], "deny": ["tag:desktop:80", "tag:phone:22"] },
+    { "src": "tag:phone", "accept": ["tag:desktop:22"], "deny": ["tag:desktop:80", "tag:laptop:22"] },
+    { "src": "tag:desktop", "deny": ["tag:laptop:22", "tag:phone:22"] }
   ]
 }
