@@ -2,3 +2,4 @@
 personal/
 dotfiles/ssh/.ssh/*
 !dotfiles/ssh/.ssh/config
+.zcompdump*
