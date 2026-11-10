@@ -95,13 +95,23 @@ pbpaste >> ~/.ssh/authorized_keys
 
 Then do the same the other way round. The dev accounts share an Apple ID, so the clipboard is shared. If pasting doesn't work, turn on Handoff and Bluetooth on both, or AirDrop `mac.pub`. Copy only the `.pub` file.
 
-### 4. Check it
+### 4. Connect
+
+On each Mac, as dev:
+
+```bash
+echo 'MAC=<dev-name>@<other-mac>' >> ~/.zshrc.local
+```
+
+In a new shell, `mac` opens a shell on the other Mac and `mac <command>` runs one command there.
+
+### 5. Check it
 
 From each Mac, as dev:
 
 | Command | Expected |
 |---|---|
-| `ssh <dev-name>@<other-mac> whoami` | `<dev-name>`, after you accept the host key the first time |
+| `mac whoami` | `<dev-name>`, after you accept the host key the first time |
 | `ssh <admin-name>@<other-mac>` | `Permission denied (publickey)` |
 | `ssh -o PubkeyAuthentication=no <dev-name>@<other-mac>` | `Permission denied`, with no password prompt |
 
