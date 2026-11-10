@@ -12,8 +12,6 @@ alias gp="git push origin -u HEAD"
 alias gpom="git pull origin main"
 alias gdab="git branch --format='%(refname:short)' | grep -vx main | xargs git branch -D"
 
-desk() { ssh -i ~/.ssh/desktop -t "${DESKTOP:?add DESKTOP=<dev-name>@<host> to ~/.zshrc.local}" "${@:-tmux new -A -s main}"; }
-
 git_branch() {
   local branch
   branch=$(git branch --show-current 2>/dev/null)

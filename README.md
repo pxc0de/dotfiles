@@ -38,7 +38,7 @@ The setup is safe to rerun. It updates its copy of this repo and skips whatever 
    curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
    ```
 
-   It signs in to GitHub with a one-time code in Safari, then asks for a passphrase for a new SSH key, which Keychain remembers. It links the dotfiles, installs the Rust toolchain and the tmux and Neovim plugins, and applies `macos.sh`.
+   It signs in to GitHub with a one-time code in Safari, then asks for passphrases for two new SSH keys, one for GitHub and one for your other Mac, which Keychain remembers. It links the dotfiles, installs the Rust toolchain and the tmux and Neovim plugins, and applies `macos.sh`.
 3. Restart the Mac.
 
 ### 3. Check it
@@ -63,63 +63,49 @@ In the admin account:
 | `brew bundle check --file ~/dotfiles/Brewfile` | `The Brewfile's dependencies are satisfied.` |
 | `sudo fdesetup list` | Both accounts |
 
-## SSH into the desktop
+## SSH between the Macs
 
-The laptop and phone reach the desktop's dev account over [Tailscale](https://tailscale.com), by key only. The admin account can't be reached over SSH.
+Each Mac's dev account reaches the other's over [Tailscale](https://tailscale.com), by key only, from anywhere. The admin accounts can't be reached over SSH.
 
-### 1. Remote Login
+### 1. Tailscale
 
-On the desktop, as admin, open System Settings > General > Sharing and turn on **Remote Login**. Under ⓘ, set **Allow access for** to Only these users, remove Administrators and add the dev account. Leave full disk access off.
-
-### 2. Keys
-
-On the laptop, as dev:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/desktop
-```
-
-On the phone, create an ed25519 key in an SSH app such as Blink Shell or Termius.
-
-AirDrop both public keys to the desktop's dev account. The phone has a different Apple ID, so first set AirDrop on the desktop to Everyone for 10 Minutes in Control Center. Send only the public key. Then, on the desktop as dev:
-
-```bash
-cat ~/Downloads/desktop.pub ~/Downloads/<phone-key>.pub >> ~/.ssh/authorized_keys
-```
-
-### 3. Tailscale
-
-1. Sign in to Tailscale with one login, protected by two-factor, in every account on both Macs and on the phone. Each macOS account signs in separately.
+1. Sign in to Tailscale with one login, protected by two-factor, in both accounts on both Macs. Each account signs in separately.
 2. In the [admin console](https://login.tailscale.com/admin), replace **Access controls** with `tailscale.json`. The console refuses to save if its tests fail.
-3. Under **Machines**, tag each device `tag:desktop`, `tag:laptop` or `tag:phone`. Only the laptop and phone can reach the desktop, on port 22. Untagged devices lose access.
+3. Under **Machines**, tag both Macs `tag:mac`. Untagged devices lose access.
 
-The desktop's machine name, such as `my-imac`, is `<host>` below.
+Each Mac's name under **Machines**, such as `my-imac`, is `<other-mac>` below when you're on the other one.
 
-### 4. Connect
+### 2. Remote Login
 
-On the laptop, as dev:
+On each Mac, as admin, open System Settings > General > Sharing and turn on **Remote Login**. Under ⓘ, set **Allow access for** to Only these users, remove Administrators and add the dev account. Leave full disk access off.
+
+### 3. Keys
+
+The dev setup made `~/.ssh/mac` for this. On one Mac, as dev:
 
 ```bash
-echo 'DESKTOP=<dev-name>@<host>' >> ~/.zshrc.local
+pbcopy < ~/.ssh/mac.pub
 ```
 
-In a new shell, `desk` opens or reattaches the tmux session `main` on the desktop. Detach with ctrl+a, d. `desk <command>` runs one command instead.
+On the other Mac, as dev:
 
-On the phone, add `<host>` with user `<dev-name>` and your key, and run `tmux new -A -s main` on connect.
+```bash
+pbpaste >> ~/.ssh/authorized_keys
+```
 
-Never use `ssh -A`. It would let the desktop use your laptop's keys.
+Then do the same the other way round. The dev accounts share an Apple ID, so the clipboard is shared. If pasting doesn't work, turn on Handoff and Bluetooth on both, or AirDrop `mac.pub`. Copy only the `.pub` file.
 
-### 5. Check it
+### 4. Check it
 
-From the laptop:
+From each Mac, as dev:
 
 | Command | Expected |
 |---|---|
-| `desk whoami` | `<dev-name>` |
-| `ssh <admin-name>@<host>` | `Permission denied (publickey)` |
-| `ssh -o PubkeyAuthentication=no <dev-name>@<host>` | `Permission denied`, with no password prompt |
+| `ssh <dev-name>@<other-mac> whoami` | `<dev-name>`, after you accept the host key the first time |
+| `ssh <admin-name>@<other-mac>` | `Permission denied (publickey)` |
+| `ssh -o PubkeyAuthentication=no <dev-name>@<other-mac>` | `Permission denied`, with no password prompt |
 
-Log out of admin on the desktop and run `desk whoami` again. If it fails, Tailscale stopped with the admin session.
+Never use `ssh -A`. It would let the other Mac use your keys.
 
 ## Updates
 
@@ -144,7 +130,7 @@ Change `REPO_URL` in `setup.sh`, the `curl` URLs here, your name and email in `d
 | `Brewfile` | Tools and apps. Fonts install for all accounts. |
 | `setup.sh` | Setup for whichever account runs it. |
 | `macos.sh` | Per-account system settings, including a private home folder. |
-| `tailscale.json` | Tailscale policy for SSH into the desktop, with tests. |
+| `tailscale.json` | Tailscale policy letting the Macs reach each other, with tests. |
 | `dotfiles/` | One [GNU Stow](https://www.gnu.org/software/stow/) package per program. |
 
 `dotfiles/npm/.npmrc` turns off npm install scripts. Allow them for one install with `npm install --ignore-scripts=false`.

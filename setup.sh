@@ -72,7 +72,6 @@ create_dev_user() {
 setup_ssh_server() {
     local conf=/etc/ssh/sshd_config.d/000-keys-only.conf
     log "Allowing SSH logins with keys only"
-    sudo rm -f /etc/ssh/sshd_config.d/000-agents.conf
     printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\n' | sudo tee "$conf" >/dev/null
     sudo ssh-keygen -A >/dev/null
     if ! sudo sshd -t; then
@@ -92,17 +91,21 @@ setup_admin() {
     try brew upgrade --greedy
 }
 
+create_ssh_key() {
+    local key="$1" purpose="$2"
+    mkdir -p -m 700 "$HOME/.ssh"
+    [[ -f "$key" ]] && return
+    log "Creating an SSH key for $purpose. Keychain remembers its passphrase"
+    ssh-keygen -t ed25519 -C "$(id -un)@$(scutil --get LocalHostName)" -f "$key"
+    ssh-add --apple-use-keychain "$key"
+}
+
 setup_github_ssh() {
     local key="$HOME/.ssh/id_ed25519"
-    mkdir -p -m 700 "$HOME/.ssh"
 
     gh auth status >/dev/null 2>&1 || gh auth login -h github.com -p ssh -s admin:public_key --skip-ssh-key -w
 
-    if [[ ! -f "$key" ]]; then
-        log "Creating an SSH key for GitHub. Keychain remembers its passphrase"
-        ssh-keygen -t ed25519 -C "$(id -un)@$(scutil --get LocalHostName)" -f "$key"
-        ssh-add --apple-use-keychain "$key"
-    fi
+    create_ssh_key "$key" GitHub
 
     if [[ "$(gh ssh-key list 2>/dev/null)" != *"$(cut -d' ' -f2 "$key.pub")"* ]]; then
         gh ssh-key add "$key.pub" --title "$(scutil --get ComputerName)"
@@ -139,6 +142,8 @@ link_dotfiles() {
 setup_dev() {
     log "Setting up GitHub access over SSH"
     setup_github_ssh
+
+    create_ssh_key "$HOME/.ssh/mac" "SSH into your other Mac"
 
     link_dotfiles
 
