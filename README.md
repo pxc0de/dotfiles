@@ -112,6 +112,17 @@ echo 'MAC=<dev-name>@<other-mac>' >> ~/.zshrc.local
 
 In a new shell, `mac` opens a shell on the other Mac and `mac <command>` runs one command there.
 
+```bash
+mac                          # open a shell
+mac whoami                   # run one command
+mac -t tmux new -A -s main   # attach to the main session, creating it if needed
+mac -t tmux attach           # attach to the most recent session
+mac -t tmux attach -t work   # attach to a named session
+mac tmux ls                  # list sessions
+```
+
+tmux needs `-t`, which gives the command a terminal. Detach with `prefix d` and the session keeps running.
+
 ### 5. Check it
 
 From each Mac, as dev:

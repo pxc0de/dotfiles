@@ -139,11 +139,19 @@ link_dotfiles() {
     done
 }
 
+install_ghostty_terminfo() {
+    TERMINFO=/Applications/Ghostty.app/Contents/Resources/terminfo infocmp -x xterm-ghostty |
+        tic -x -o "$HOME/.terminfo" - 2>/dev/null
+}
+
 setup_dev() {
     log "Setting up GitHub access over SSH"
     setup_github_ssh
 
     create_ssh_key "$HOME/.ssh/mac" "SSH into your other Mac"
+
+    log "Installing Ghostty's terminfo for SSH sessions from the other Mac"
+    try install_ghostty_terminfo
 
     link_dotfiles
 
