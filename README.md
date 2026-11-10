@@ -95,6 +95,13 @@ pbpaste >> ~/.ssh/authorized_keys
 
 Then do the same the other way round. The dev accounts share an Apple ID, so the clipboard is shared. If pasting doesn't work, turn on Handoff and Bluetooth on both, or AirDrop `mac.pub`. Copy only the `.pub` file.
 
+AirDrop puts the file in `~/Downloads`. Add it to `authorized_keys` rather than moving it into `~/.ssh`, which would overwrite that Mac's own `mac.pub`:
+
+```bash
+cat ~/Downloads/mac.pub >> ~/.ssh/authorized_keys
+rm ~/Downloads/mac.pub
+```
+
 ### 4. Connect
 
 On each Mac, as dev:
