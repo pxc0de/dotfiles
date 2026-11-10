@@ -20,9 +20,16 @@ git_branch() {
   [[ -n $branch ]] && print -n " %F{#cba6f7}$branch%f"
 }
 
+ssh_host() {
+  [[ -n $SSH_CONNECTION ]] && print -n "%F{#f38ba8}%m%f "
+}
+
 setopt PROMPT_SUBST
-precmd() { echo }
-PROMPT='%B%F{#b4befe}🚀 %3~%f$(git_branch)
+precmd() {
+  echo
+  [[ -n $SSH_CONNECTION ]] && print -Pn "\e]0;%m: %3~\a"
+}
+PROMPT='%B$(ssh_host)%F{#b4befe}🚀 %3~%f$(git_branch)
 %F{#fab387}❯%f %b'
 
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
