@@ -1,5 +1,7 @@
 cask_args fontdir: "/Library/Fonts"
 
+tap "stablyai/orca"
+
 brew "stow"
 brew "neovim"
 brew "tree-sitter-cli"
@@ -21,6 +23,8 @@ cask "ghostty"
 cask "tailscale-app"
 cask "claude-code"
 cask "claude"
+cask "stablyai/orca/orca"
+cask "t3-code"
 cask "google-chrome"
 cask "notion"
 cask "whatsapp"
