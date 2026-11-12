@@ -26,7 +26,7 @@ The setup is safe to rerun. It updates its copy of this repo and skips whatever 
 
    It asks for `Password:` (your admin password), then `User password:` (a new password for the dev account). Without `DEV_USER`, it asks for the name first. Homebrew asks for the admin password again before apps with an installer, such as Tailscale.
 
-   It installs the Xcode Command Line Tools, Homebrew and the `Brewfile`, creates the dev account, makes SSH keys-only and applies `macos.sh`.
+   It installs the Xcode Command Line Tools, Homebrew and the `Brewfile`, creates the dev account, makes SSH keys-only, turns on the firewall and applies `macos.sh`. The firewall blocks other devices from reaching servers you run, such as `npm run dev`; share one with `tailscale serve` instead. If macOS asks whether to accept incoming connections, choose Deny.
 3. Log out.
 
 ### 2. Dev account
@@ -62,6 +62,7 @@ In the admin account:
 | `ls -ld ~` | Starts with `drwx------` |
 | `brew bundle check --file ~/dotfiles/Brewfile` | `The Brewfile's dependencies are satisfied.` |
 | `sudo fdesetup list` | Both accounts |
+| `/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate` | `Firewall is enabled` |
 
 ## SSH between the Macs
 
@@ -71,7 +72,15 @@ Each Mac's dev account reaches the other's over [Tailscale](https://tailscale.co
 
 1. Sign in to Tailscale with one login, protected by two-factor, in both accounts on both Macs. Each account signs in separately.
 2. In the [admin console](https://login.tailscale.com/admin), replace **Access controls** with `tailscale.json`. The console refuses to save if its tests fail.
-3. Under **Machines**, tag both Macs `tag:mac`. Untagged devices lose access.
+3. Under **Machines**, tag both Macs `tag:mac` and your phone `tag:phone`. Untagged devices lose access. The phone reaches the Macs' web ports but not SSH.
+
+To open a dev server from the other devices, keep it on localhost and share it over the tailnet, as dev:
+
+```bash
+/Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 3000   # https://<this-mac>.<tailnet>.ts.net
+/Applications/Tailscale.app/Contents/MacOS/Tailscale serve status
+/Applications/Tailscale.app/Contents/MacOS/Tailscale serve reset       # stop sharing
+```
 
 Each Mac's name under **Machines**, such as `my-imac`, is `<other-mac>` below when you're on the other one.
 

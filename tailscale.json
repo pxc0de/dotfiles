@@ -1,11 +1,14 @@
 {
   "tagOwners": {
-    "tag:mac": ["autogroup:admin"]
+    "tag:mac": ["autogroup:admin"],
+    "tag:phone": ["autogroup:admin"]
   },
   "grants": [
-    { "src": ["tag:mac"], "dst": ["tag:mac"], "ip": ["*"] }
+    { "src": ["tag:mac"], "dst": ["tag:mac"], "ip": ["*"] },
+    { "src": ["tag:phone"], "dst": ["tag:mac"], "ip": ["tcp:80", "tcp:443", "tcp:1024-65535"] }
   ],
   "tests": [
-    { "src": "tag:mac", "accept": ["tag:mac:22", "tag:mac:443"] }
+    { "src": "tag:mac", "accept": ["tag:mac:22", "tag:mac:443"] },
+    { "src": "tag:phone", "accept": ["tag:mac:443", "tag:mac:3000"], "deny": ["tag:mac:22"] }
   ]
 }

@@ -81,9 +81,17 @@ setup_ssh_server() {
     fi
 }
 
+setup_firewall() {
+    local fw=/usr/libexec/ApplicationFirewall/socketfilterfw
+    log "Turning on the firewall and stealth mode"
+    sudo "$fw" --setglobalstate on >/dev/null
+    sudo "$fw" --setstealthmode on >/dev/null
+}
+
 setup_admin() {
     create_dev_user
     setup_ssh_server
+    try setup_firewall
 
     log "Installing and upgrading everything in the Brewfile"
     try brew update
