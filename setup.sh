@@ -111,7 +111,11 @@ create_ssh_key() {
 setup_github_ssh() {
     local key="$HOME/.ssh/id_ed25519"
 
-    gh auth status >/dev/null 2>&1 || gh auth login -h github.com -p ssh -s admin:public_key --skip-ssh-key -w
+    if ! gh auth status >/dev/null 2>&1; then
+        gh auth login -h github.com -p ssh -s admin:public_key --skip-ssh-key -w
+    elif ! gh auth status 2>&1 | grep -q "admin:public_key"; then
+        gh auth refresh -h github.com -s admin:public_key
+    fi
 
     create_ssh_key "$key" GitHub
 
