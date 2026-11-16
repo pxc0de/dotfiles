@@ -172,4 +172,6 @@ Change `REPO_URL` in `setup.sh`, the `curl` URLs here, your name and email in `d
 
 `dotfiles/npm/.npmrc` turns off npm install scripts. Allow them for one install with `npm install --ignore-scripts=false`.
 
+To try a tool without the admin account, install it in dev's home: `uv tool install`, `cargo install`, `go install`, `npm install -g` or a binary in `~/.local/bin`, which come after Homebrew on the `PATH`, and apps in `~/Applications`. Add keepers to the `Brewfile`.
+
 Per-Mac settings, such as private aliases, go in `~/.zshrc.local`, which isn't in the repo.
