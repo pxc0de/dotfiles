@@ -1,16 +1,16 @@
 {
   "tagOwners": {
-    "tag:dev": ["autogroup:admin"],
-    "tag:personal": ["autogroup:admin"],
+    "tag:headless": ["autogroup:admin"],
+    "tag:main": ["autogroup:admin"],
     "tag:phone": ["autogroup:admin"]
   },
   "grants": [
-    { "src": ["tag:personal"], "dst": ["tag:dev"], "ip": ["*"] },
-    { "src": ["tag:phone"], "dst": ["tag:dev"], "ip": ["tcp:80", "tcp:443", "tcp:1024-65535"] }
+    { "src": ["tag:main"], "dst": ["tag:headless"], "ip": ["*"] },
+    { "src": ["tag:phone"], "dst": ["tag:headless"], "ip": ["tcp:80", "tcp:443", "tcp:1024-65535"] }
   ],
   "tests": [
-    { "src": "tag:personal", "accept": ["tag:dev:22", "tag:dev:443"] },
-    { "src": "tag:phone", "accept": ["tag:dev:443", "tag:dev:3000"], "deny": ["tag:dev:22", "tag:personal:443"] },
-    { "src": "tag:dev", "deny": ["tag:personal:22", "tag:personal:443", "tag:phone:443"] }
+    { "src": "tag:main", "accept": ["tag:headless:22", "tag:headless:443"] },
+    { "src": "tag:phone", "accept": ["tag:headless:443", "tag:headless:3000"], "deny": ["tag:headless:22", "tag:main:443"] },
+    { "src": "tag:headless", "deny": ["tag:main:22", "tag:main:443", "tag:phone:443"] }
   ]
 }

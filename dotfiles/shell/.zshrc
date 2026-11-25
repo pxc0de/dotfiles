@@ -1,5 +1,4 @@
-typeset -U path
-path=($HOMEBREW_PREFIX/opt/python/libexec/bin $HOMEBREW_PREFIX/opt/rustup/bin $HOMEBREW_PREFIX/bin $HOMEBREW_PREFIX/sbin $path ~/.local/bin ~/.cargo/bin)
+path=($HOMEBREW_PREFIX/opt/python/libexec/bin $HOMEBREW_PREFIX/opt/rustup/bin $HOMEBREW_PREFIX/bin $HOMEBREW_PREFIX/sbin $path)
 
 export CLICOLOR=1
 
@@ -12,7 +11,7 @@ alias gp="git push origin -u HEAD"
 alias gpom="git pull origin main"
 alias gdab="git branch --format='%(refname:short)' | grep -vx main | xargs git branch -D"
 
-mac() { ssh "${MAC:?add MAC=<user>@<dev-mac> to ~/.zshrc.local}" "$@"; }
+mac() { ssh "${MAC:?add MAC=<user>@<headless-mac> to ~/.zshrc.local}" "$@"; }
 
 git_branch() {
   local branch

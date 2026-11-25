@@ -39,9 +39,11 @@ fi
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ROLE_FILE="$HOME/.config/dotfiles/role"
-ROLE="${ROLE:-$(cat "$ROLE_FILE" 2>/dev/null || true)}"
-until [[ "$ROLE" == dev || "$ROLE" == personal ]]; do
-    read -r -p "Is this the always-on dev Mac or your personal Mac? [dev/personal] " ROLE
+SAVED_ROLE="$(cat "$ROLE_FILE" 2>/dev/null || true)"
+ROLE=
+until [[ "$ROLE" == main || "$ROLE" == headless ]]; do
+    read -r -p "Is this Mac main or headless? [${SAVED_ROLE:-main/headless}] " ROLE
+    ROLE="${ROLE:-$SAVED_ROLE}"
 done
 mkdir -p "$(dirname "$ROLE_FILE")"
 echo "$ROLE" >"$ROLE_FILE"
@@ -86,7 +88,7 @@ setup_github_ssh() {
 
     if ! gh auth status >/dev/null 2>&1; then
         gh auth login -h github.com -p ssh -s admin:public_key --skip-ssh-key -w
-    elif ! gh auth status 2>&1 | grep -q "admin:public_key"; then
+    elif [[ "$(gh auth status 2>&1)" != *admin:public_key* ]]; then
         gh auth refresh -h github.com -s admin:public_key
     fi
 
@@ -109,22 +111,22 @@ setup_github_ssh() {
 
 setup_github_token() {
     local token
-    if ! gh auth status >/dev/null 2>&1; then
+    while ! gh auth status >/dev/null 2>&1; do
         log "Paste a fine-grained GitHub token, made as the README describes"
         read -r -s -p "Token: " token
         echo
-        printf '%s\n' "$token" | gh auth login -h github.com --with-token
-    fi
+        [[ -n "$token" ]] && printf '%s\n' "$token" | gh auth login -h github.com --with-token
+    done
     gh config set -h github.com git_protocol https
-    gh auth setup-git -h github.com
+    GIT_CONFIG_GLOBAL="$HOME/.gitconfig" gh auth setup-git -h github.com
 }
 
 link_dotfiles() {
-    local package dir rel target
+    local dir rel target
     log "Linking dotfiles"
     mkdir -p "$HOME/.config"
-    for package in $(ls "$REPO/dotfiles"); do
-        dir="$REPO/dotfiles/$package/"
+    mkdir -p -m 700 "$HOME/.ssh"
+    for dir in "$REPO"/dotfiles/*/; do
         while IFS= read -r rel; do
             target="$HOME/$rel"
             if [[ -e "$target" || -L "$target" ]] && [[ "$(realpath "$target" 2>/dev/null)" != "$(realpath "$dir$rel")" ]]; then
@@ -132,7 +134,7 @@ link_dotfiles() {
                 mv "$target" "$target.bak"
             fi
         done < <(cd "$dir" && find . -type f | sed 's|^\./||')
-        stow -R -t "$HOME" -d "$REPO/dotfiles" "$package"
+        stow -R -t "$HOME" -d "$REPO/dotfiles" "$(basename "$dir")"
     done
 }
 
@@ -141,22 +143,22 @@ install_ghostty_terminfo() {
         tic -x -o "$HOME/.terminfo" - 2>/dev/null
 }
 
-setup_dev() {
+setup_headless() {
     log "Setting up GitHub access with a fine-grained token"
     setup_github_token
 
-    log "Installing Ghostty's terminfo for SSH sessions from the personal Mac"
+    log "Installing Ghostty's terminfo for SSH sessions from the main Mac"
     try install_ghostty_terminfo
 
     log "Keeping the Mac awake and restarting it after a power failure"
     try sudo pmset -a sleep 0 disksleep 0 autorestart 1
 }
 
-setup_personal() {
+setup_main() {
     log "Setting up GitHub access over SSH"
     setup_github_ssh
 
-    create_ssh_key "$HOME/.ssh/mac" "SSH into the dev Mac"
+    create_ssh_key "$HOME/.ssh/mac" "SSH into the headless Mac"
 }
 
 setup_user() {
@@ -177,10 +179,10 @@ setup_user() {
 setup_ssh_server
 try setup_firewall
 setup_brew
-if [[ "$ROLE" == dev ]]; then
-    setup_dev
+if [[ "$ROLE" == headless ]]; then
+    setup_headless
 else
-    setup_personal
+    setup_main
 fi
 setup_user
 
