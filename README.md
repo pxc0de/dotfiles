@@ -2,14 +2,17 @@
 
 One command sets up a Mac for coding: tools, apps, editor, terminal and system settings. Works on Apple Silicon and Intel.
 
-Each Mac has one account, the administrator created in Setup Assistant, and one of two roles:
+Each Mac has one account, the administrator created in Setup Assistant, and one of three roles:
 
 | Role | Mac | Runs | GitHub access | SSH |
 |---|---|---|---|---|
 | `main` | Your laptop | You, and your personal data | Your account, with an SSH key | Connects to the headless Mac, accepts nothing |
 | `headless` | An iMac or Mac mini | Always-on AI agents | Your account, with an SSH key | Accepts logins from the main Mac |
+| `work` | Your work laptop | Your job | None. You add your work account yourself. | None set up |
 
-Agents run as you and have full access to your GitHub account. On the headless Mac, nothing can sign in to the main Mac or reach it over Tailscale, so a misbehaving agent there stays on that Mac. It still reaches the internet as normal.
+`main` and `headless` are personal Macs. They also get the personal apps at the end of the `Brewfile`: Tailscale, Claude, Claude Code, Orca, T3 Code, Notion, WhatsApp, NordVPN and Grok. A `work` Mac gets only the shared tools and apps.
+
+On the personal Macs, agents run as you and have full access to your GitHub account. On the headless Mac, nothing can sign in to the main Mac or reach it over Tailscale, so a misbehaving agent there stays on that Mac. It still reaches the internet as normal.
 
 The setup doesn't cover fine-grained personal access tokens. Use one on the headless Mac instead of your account's SSH key if you want agents to:
 
@@ -33,7 +36,7 @@ The setup is safe to rerun. It updates its copy of this repo and skips whatever 
 
 ## New Macs
 
-Set up the two Macs in either order, then Tailscale and SSH, which need both.
+Set up the two personal Macs in either order, then Tailscale and SSH, which need both. For a work Mac, see [Work Mac](#5-work-mac).
 
 ### 1. Main Mac
 
@@ -50,11 +53,11 @@ Set up the two Macs in either order, then Tailscale and SSH, which need both.
    | Prompt | Answer |
    |---|---|
    | `Password:` | Your account password |
-   | `Is this Mac main or headless?` | `main` |
+   | `Is this Mac main, headless or work?` | `main` |
    | GitHub one-time code | Press Return, then enter the code in Safari and authorize |
    | Two passphrases, one per SSH key | New passphrases. Keychain remembers them. |
 
-   It installs the Xcode Command Line Tools, Homebrew and the `Brewfile`, makes SSH keys-only and turns on the firewall. It makes an SSH key for GitHub and adds it to your account, and `~/.ssh/mac` for logging in to the headless Mac. It then links the dotfiles, installs the Rust toolchain and the tmux and Neovim plugins, and applies `macos.sh`. If macOS later asks whether an app may accept incoming connections, choose Deny.
+   It installs the Xcode Command Line Tools, Homebrew and the `Brewfile`, including the personal apps, makes SSH keys-only and turns on the firewall. It makes an SSH key for GitHub and adds it to your account, and `~/.ssh/mac` for logging in to the headless Mac. It then links the dotfiles, installs the Rust toolchain and the tmux and Neovim plugins, and applies `macos.sh`. Homebrew asks for your password again before apps with an installer, such as Tailscale. If macOS later asks whether an app may accept incoming connections, choose Deny.
 4. Restart the Mac.
 5. Open Ghostty and check:
 
@@ -64,7 +67,7 @@ Set up the two Macs in either order, then Tailscale and SSH, which need both.
    | `git -C ~/dotfiles remote get-url origin` | Starts with `git@github.com:` |
    | `ls ~/.ssh` | Includes `id_ed25519` and `mac` |
 
-   Then run the [checks for both Macs](#checks-for-both-macs).
+   Then run the [checks for every Mac](#checks-for-every-mac).
 
 ### 2. Headless Mac
 
@@ -81,7 +84,7 @@ Set up the two Macs in either order, then Tailscale and SSH, which need both.
    | Prompt | Answer |
    |---|---|
    | `Password:` | Your account password |
-   | `Is this Mac main or headless?` | `headless` |
+   | `Is this Mac main, headless or work?` | `headless` |
    | GitHub one-time code | Press Return, then enter the code in Safari and authorize |
    | One passphrase, for the GitHub SSH key | A new passphrase. Keychain remembers it. |
 
@@ -98,11 +101,11 @@ Set up the two Macs in either order, then Tailscale and SSH, which need both.
    | `ls ~/.ssh` | Includes `id_ed25519`, but no `mac` |
    | `id -un` | Your account name, which is `<user>` below |
 
-   Then run the [checks for both Macs](#checks-for-both-macs).
+   Then run the [checks for every Mac](#checks-for-every-mac).
 
 ### 3. Tailscale
 
-1. Install [Tailscale](https://tailscale.com/download/mac) on both Macs, and on your phone if you want to open dev servers from it. Sign in on each with the same login, protected by two-factor.
+1. The setup installed Tailscale on both Macs. Open it on each and sign in with the same login, protected by two-factor. Install it on your phone too if you want to open dev servers from it.
 2. On the main Mac, run `pbcopy < ~/dotfiles/tailscale.json`. In the [admin console](https://login.tailscale.com/admin/acls), select everything under **Access controls**, paste over it and save. The console refuses to save if the policy's tests fail.
 3. Under [**Machines**](https://login.tailscale.com/admin/machines), open each device's ⋯ menu, choose **Edit ACL tags** and add one tag: `tag:main` for the main Mac, `tag:headless` for the headless Mac and `tag:phone` for your phone. Untagged devices lose access.
 4. The headless Mac's name in that list, such as `my-imac`, is `<headless-mac>` below.
@@ -137,7 +140,41 @@ The main Mac can reach the headless Mac. The phone reaches the headless Mac's we
    | `ssh -o PubkeyAuthentication=no <user>@<headless-mac>` | `Permission denied`, with no password prompt |
 6. Restart the headless Mac and run `mac whoami` again once it's back. FileVault waits for your password at the login screen, and Tailscale may not run until you log in. If it doesn't connect, log in at the headless Mac's keyboard; it will need that after every restart.
 
-### Checks for both Macs
+### 5. Work Mac
+
+The setup needs an administrator account, because it installs Homebrew and turns on the firewall. Check that your company allows Homebrew and personal dotfiles on its Mac before you start.
+
+1. Set up the Mac the way your IT team asks.
+2. In Terminal, run the same command and answer `work`:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
+   ```
+
+   It installs the Xcode Command Line Tools, Homebrew and the shared part of the `Brewfile`, turns on the firewall, links the dotfiles, installs the Rust toolchain and the tmux and Neovim plugins, and applies `macos.sh`. It doesn't:
+
+   - sign in to GitHub or make SSH keys
+   - change the SSH server
+   - link the `git` and `ssh` dotfiles, which hold your personal email and keys
+   - install Tailscale or the other personal apps
+
+   Skip [Tailscale](#3-tailscale) and [SSH](#4-ssh-from-the-main-mac-to-the-headless-mac) on a work Mac, and don't add it to your tailnet.
+
+   Its copy of this repo stays read-only over HTTPS. Edit this repo from a personal Mac.
+3. Set up your work account yourself, for example:
+
+   ```bash
+   git config --global user.name "<name>"
+   git config --global user.email "<work-email>"
+   gh auth login
+   ```
+
+   `git config --global` writes to `~/.gitconfig`, which isn't in this repo.
+4. Restart the Mac, then run the [checks for every Mac](#checks-for-every-mac). `sudo fdesetup list` may also list accounts your IT team manages, and its device management may turn the firewall off again.
+
+Settings you add on a work Mac go in files outside this repo: `~/.zshrc.local`, `~/.gitconfig` and `~/.ssh/config`. Keep work registries and tokens out of `~/.npmrc`: it links into this repo, so `npm login` and `npm config set` write into the repo. Put them in each project's `.npmrc` instead. Install scripts are off; if a work project needs them, run `npm install --ignore-scripts=false` there.
+
+### Checks for every Mac
 
 In Ghostty:
 
@@ -202,8 +239,8 @@ Change `REPO_URL` in `setup.sh`, the `curl` URLs here, your name and email in `d
 
 | Path | Contents |
 |---|---|
-| `Brewfile` | Tools and apps. |
-| `setup.sh` | The whole setup, for either role. |
+| `Brewfile` | Tools and apps for every Mac, and personal apps for `main` and `headless`. |
+| `setup.sh` | The whole setup, for any role. |
 | `macos.sh` | System settings, including a private home folder. |
 | `tailscale.json` | Tailscale policy letting the main Mac reach the headless Mac, with tests. |
 | `dotfiles/` | One [GNU Stow](https://www.gnu.org/software/stow/) package per program. |

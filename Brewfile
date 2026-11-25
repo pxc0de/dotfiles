@@ -17,3 +17,17 @@ brew "rustup"
 cask "font-jetbrains-mono-nerd-font"
 cask "ghostty"
 cask "google-chrome"
+
+if (File.read(File.expand_path("~/.config/dotfiles/role")).strip rescue "") != "work"
+  tap "stablyai/orca"
+
+  cask "tailscale-app"
+  cask "claude-code"
+  cask "claude"
+  cask "stablyai/orca/orca"
+  cask "t3-code"
+  cask "notion"
+  cask "whatsapp"
+  cask "nordvpn"
+  cask "grok-bot"
+end

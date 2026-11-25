@@ -41,8 +41,8 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROLE_FILE="$HOME/.config/dotfiles/role"
 SAVED_ROLE="$(cat "$ROLE_FILE" 2>/dev/null || true)"
 ROLE=
-until [[ "$ROLE" == main || "$ROLE" == headless ]]; do
-    read -r -p "Is this Mac main or headless? [${SAVED_ROLE:-main/headless}] " ROLE
+until [[ "$ROLE" == main || "$ROLE" == headless || "$ROLE" == work ]]; do
+    read -r -p "Is this Mac main, headless or work? [${SAVED_ROLE:-main/headless/work}] " ROLE
     ROLE="${ROLE:-$SAVED_ROLE}"
 done
 mkdir -p "$(dirname "$ROLE_FILE")"
@@ -85,6 +85,7 @@ create_ssh_key() {
 
 setup_github_ssh() {
     local key="$HOME/.ssh/id_ed25519"
+    log "Setting up GitHub access over SSH"
 
     if ! gh auth status >/dev/null 2>&1; then
         gh auth login -h github.com -p ssh -s admin:public_key --skip-ssh-key -w
@@ -115,6 +116,7 @@ link_dotfiles() {
     mkdir -p "$HOME/.config"
     mkdir -p -m 700 "$HOME/.ssh"
     for dir in "$REPO"/dotfiles/*/; do
+        [[ "$ROLE" == work ]] && [[ "$dir" == */git/ || "$dir" == */ssh/ ]] && continue
         while IFS= read -r rel; do
             target="$HOME/$rel"
             if [[ -e "$target" || -L "$target" ]] && [[ "$(realpath "$target" 2>/dev/null)" != "$(realpath "$dir$rel")" ]]; then
@@ -132,6 +134,9 @@ install_ghostty_terminfo() {
 }
 
 setup_headless() {
+    setup_ssh_server
+    setup_github_ssh
+
     log "Installing Ghostty's terminfo for SSH sessions from the main Mac"
     try install_ghostty_terminfo
 
@@ -140,6 +145,8 @@ setup_headless() {
 }
 
 setup_main() {
+    setup_ssh_server
+    setup_github_ssh
     create_ssh_key "$HOME/.ssh/mac" "SSH into the headless Mac"
 }
 
@@ -158,18 +165,12 @@ setup_user() {
     try nvim --headless "+Lazy! sync" +qa
 }
 
-setup_ssh_server
 try setup_firewall
 setup_brew
-
-log "Setting up GitHub access over SSH"
-setup_github_ssh
-
-if [[ "$ROLE" == headless ]]; then
-    setup_headless
-else
-    setup_main
-fi
+case "$ROLE" in
+    main) setup_main ;;
+    headless) setup_headless ;;
+esac
 setup_user
 
 log "Applying macOS defaults"
