@@ -109,18 +109,6 @@ setup_github_ssh() {
     fi
 }
 
-setup_github_token() {
-    local token
-    while ! gh auth status >/dev/null 2>&1; do
-        log "Paste a fine-grained GitHub token, made as the README describes"
-        read -r -s -p "Token: " token
-        echo
-        [[ -n "$token" ]] && printf '%s\n' "$token" | gh auth login -h github.com --with-token
-    done
-    gh config set -h github.com git_protocol https
-    GIT_CONFIG_GLOBAL="$HOME/.gitconfig" gh auth setup-git -h github.com
-}
-
 link_dotfiles() {
     local dir rel target
     log "Linking dotfiles"
@@ -144,9 +132,6 @@ install_ghostty_terminfo() {
 }
 
 setup_headless() {
-    log "Setting up GitHub access with a fine-grained token"
-    setup_github_token
-
     log "Installing Ghostty's terminfo for SSH sessions from the main Mac"
     try install_ghostty_terminfo
 
@@ -155,9 +140,6 @@ setup_headless() {
 }
 
 setup_main() {
-    log "Setting up GitHub access over SSH"
-    setup_github_ssh
-
     create_ssh_key "$HOME/.ssh/mac" "SSH into the headless Mac"
 }
 
@@ -179,6 +161,10 @@ setup_user() {
 setup_ssh_server
 try setup_firewall
 setup_brew
+
+log "Setting up GitHub access over SSH"
+setup_github_ssh
+
 if [[ "$ROLE" == headless ]]; then
     setup_headless
 else

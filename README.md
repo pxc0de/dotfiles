@@ -6,16 +6,34 @@ Each Mac has one account, the administrator created in Setup Assistant, and one 
 
 | Role | Mac | Runs | GitHub access | SSH |
 |---|---|---|---|---|
-| `main` | Your laptop | You, and your personal data | Your account's SSH key | Connects to the headless Mac, accepts nothing |
-| `headless` | An iMac or Mac mini | Always-on AI agents | A fine-grained token, limited to the repos you choose | Accepts logins from the main Mac |
+| `main` | Your laptop | You, and your personal data | Your account, with an SSH key | Connects to the headless Mac, accepts nothing |
+| `headless` | An iMac or Mac mini | Always-on AI agents | Your account, with an SSH key | Accepts logins from the main Mac |
 
-Agents on the headless Mac run as you, so treat it as the Mac that could be compromised. Nothing on it can sign in to the main Mac, reach it over Tailscale, or manage your GitHub account's keys. It still reaches the internet as normal.
+Agents run as you and have full access to your GitHub account. On the headless Mac, nothing can sign in to the main Mac or reach it over Tailscale, so a misbehaving agent there stays on that Mac. It still reaches the internet as normal.
+
+The setup doesn't cover fine-grained personal access tokens. Use one on the headless Mac instead of your account's SSH key if you want agents to:
+
+- reach only the repos you choose, not every repo you own
+- have only the permissions you choose, such as Contents and Pull requests, and never delete repos, change their settings or add SSH keys and tokens to your account
+- lose access on a set date, when the token expires
+
+To switch after the setup, create the token at [Settings > Developer settings > Fine-grained tokens](https://github.com/settings/personal-access-tokens/new), then on the headless Mac:
+
+```bash
+gh auth logout -h github.com
+gh auth login -h github.com --with-token   # paste the token, press Return, then Control-D
+gh config set -h github.com git_protocol https
+GIT_CONFIG_GLOBAL=~/.gitconfig gh auth setup-git -h github.com
+git -C ~/dotfiles remote set-url origin https://github.com/pxc0de/dotfiles.git
+```
+
+Then delete the headless Mac's key under [Settings > SSH and GPG keys](https://github.com/settings/keys), and `~/.ssh/id_ed25519` on that Mac. `GIT_CONFIG_GLOBAL` keeps git's credential setting out of this repo's tracked git config. Rerunning the setup undoes the switch: it signs `gh` in to your account again and adds a new SSH key.
 
 The setup is safe to rerun. It updates its copy of this repo and skips whatever is already done. A yellow `warning:` line means one step failed and the rest still ran.
 
 ## New Macs
 
-Follow these steps in order. Set up the main Mac first: you use it to make the headless Mac's GitHub token and to log in to the headless Mac afterwards.
+Set up the two Macs in either order, then Tailscale and SSH, which need both.
 
 ### 1. Main Mac
 
@@ -48,26 +66,11 @@ Follow these steps in order. Set up the main Mac first: you use it to make the h
 
    Then run the [checks for both Macs](#checks-for-both-macs).
 
-### 2. GitHub token for the headless Mac
-
-On the main Mac, open [Settings > Developer settings > Fine-grained tokens](https://github.com/settings/personal-access-tokens/new) and create a token:
-
-| Field | Value |
-|---|---|
-| Expiration | 90 days |
-| Repository access | Only select repositories: the ones agents work in, plus `dotfiles` |
-| Contents | Read and write |
-| Pull requests | Read and write |
-| Workflows | Read and write, only if agents edit `.github/workflows` |
-
-Leave everything else at No access. Copy the token and leave the page open: once both Macs use the same Apple ID, you can paste it on the headless Mac with Universal Clipboard. Don't save it in a file.
-
-In each of those repos, add a ruleset under Settings > Rules that requires a pull request before merging to `main`, so agents can't push to it directly.
-
-### 3. Headless Mac
+### 2. Headless Mac
 
 1. In Setup Assistant, create your account, sign in to your Apple ID and leave FileVault on.
-2. In Terminal, run the same command:
+2. In Safari, sign in to GitHub.
+3. In Terminal, run the same command:
 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bash
@@ -79,24 +82,25 @@ In each of those repos, add a ruleset under Settings > Rules that requires a pul
    |---|---|
    | `Password:` | Your account password |
    | `Is this Mac main or headless?` | `headless` |
-   | `Token:` | Paste the token from step 2. It doesn't show as you paste. |
+   | GitHub one-time code | Press Return, then enter the code in Safari and authorize |
+   | One passphrase, for the GitHub SSH key | A new passphrase. Keychain remembers it. |
 
-   It installs and configures the same things as on the main Mac, without SSH keys. `gh` and `git` use the token instead. It also installs Ghostty's terminfo for SSH sessions from the main Mac, keeps the Mac awake and turns it back on after a power failure.
-3. Restart the Mac.
-4. Open Ghostty and check:
+   It installs and configures the same things as on the main Mac, without the `~/.ssh/mac` key, since the headless Mac never logs in to the main Mac. It also installs Ghostty's terminfo for SSH sessions from the main Mac, keeps the Mac awake and turns it back on after a power failure.
+4. Restart the Mac.
+5. Open Ghostty and check:
 
    | Command | Expected |
    |---|---|
-   | `gh auth status` | `Logged in to github.com` |
-   | `git -C ~/dotfiles remote get-url origin` | Starts with `https://github.com/` |
+   | `ssh -T git@github.com` | `Hi <github-user>! You've successfully authenticated` |
+   | `git -C ~/dotfiles remote get-url origin` | Starts with `git@github.com:` |
    | `pmset -g \| grep -E '^ *(sleep\|autorestart)'` | `sleep 0` and `autorestart 1` |
    | `ls -ld ~/.ssh` | Starts with `drwx------`, not `l` |
-   | `ls ~/.ssh` | No `id_ed25519` or `mac` |
+   | `ls ~/.ssh` | Includes `id_ed25519`, but no `mac` |
    | `id -un` | Your account name, which is `<user>` below |
 
    Then run the [checks for both Macs](#checks-for-both-macs).
 
-### 4. Tailscale
+### 3. Tailscale
 
 1. Install [Tailscale](https://tailscale.com/download/mac) on both Macs, and on your phone if you want to open dev servers from it. Sign in on each with the same login, protected by two-factor.
 2. On the main Mac, run `pbcopy < ~/dotfiles/tailscale.json`. In the [admin console](https://login.tailscale.com/admin/acls), select everything under **Access controls**, paste over it and save. The console refuses to save if the policy's tests fail.
@@ -105,7 +109,7 @@ In each of those repos, add a ruleset under Settings > Rules that requires a pul
 
 The main Mac can reach the headless Mac. The phone reaches the headless Mac's web ports but not SSH. The headless Mac can't start a connection to any of them. Don't add a `funnel` attribute to the policy: without one, nothing on the headless Mac can share a port with the public internet.
 
-### 5. SSH from the main Mac to the headless Mac
+### 4. SSH from the main Mac to the headless Mac
 
 1. On the headless Mac, open System Settings > General > Sharing and turn on **Remote Login**. Under ⓘ, set **Allow access for** to Only these users, remove Administrators and add your account. Leave full disk access off. On the main Mac, leave Remote Login off.
 2. On the main Mac, copy its public key:
@@ -168,10 +172,6 @@ The firewall blocks other devices from reaching servers you run, such as `npm ru
 /Applications/Tailscale.app/Contents/MacOS/Tailscale serve status
 /Applications/Tailscale.app/Contents/MacOS/Tailscale serve reset       # stop sharing
 ```
-
-## Token renewal
-
-When the token expires, `gh auth status` on the headless Mac fails. Create a new token as in [step 2](#2-github-token-for-the-headless-mac), rerun the setup on the headless Mac and paste it when asked.
 
 ## Updates
 
