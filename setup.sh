@@ -7,7 +7,6 @@ readonly REPO_URL=https://github.com/pxc0de/dotfiles.git
 
 log() { printf '\033[0;34m==>\033[0m %s\n' "$*"; }
 try() { "$@" || printf '\033[1;33mwarning:\033[0m %s failed, continuing\n' "$*" >&2; }
-is_admin() { [[ " $(id -Gn) " == *" admin "* ]]; }
 
 load_brew() {
     local prefix
@@ -20,17 +19,12 @@ load_brew() {
     return 1
 }
 
-if is_admin; then
-    sudo -v
-    while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-    if ! load_brew; then
-        log "Installing Homebrew and the Xcode Command Line Tools"
-        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        load_brew
-    fi
-elif ! load_brew; then
-    echo "Homebrew is missing. Run setup.sh from the admin account first." >&2
-    exit 1
+sudo -v
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+if ! load_brew; then
+    log "Installing Homebrew and the Xcode Command Line Tools"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    load_brew
 fi
 
 if [[ -z "${BASH_SOURCE[0]:-}" ]]; then
@@ -44,30 +38,13 @@ fi
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-has_standard_user() {
-    local user
-    for user in $(dscl . -list /Users UniqueID | awk '$2 >= 501 { print $1 }'); do
-        dseditgroup -o checkmember -m "$user" admin >/dev/null 2>&1 || return 0
-    done
-    return 1
-}
-
-create_dev_user() {
-    local name="${DEV_USER:-}"
-    if [[ -z "$name" ]]; then
-        has_standard_user && return
-        read -r -p "Name for the standard dev account: " name
-        [[ -n "$name" ]] || { echo "No account name given" >&2; exit 1; }
-    fi
-    if ! id "$name" >/dev/null 2>&1; then
-        log "Creating the standard user $name. Enter a new password for $name"
-        sudo sysadminctl interactive -addUser "$name" -fullName "$name" -password -
-    fi
-    if sysadminctl -secureTokenStatus "$name" 2>&1 | grep -q DISABLED; then
-        log "Letting $name unlock FileVault. Enter your own password, then the password of $name"
-        sudo sysadminctl -secureTokenOn "$name" -password - -adminUser "$(id -un)" -adminPassword -
-    fi
-}
+ROLE_FILE="$HOME/.config/dotfiles/role"
+ROLE="${ROLE:-$(cat "$ROLE_FILE" 2>/dev/null || true)}"
+until [[ "$ROLE" == dev || "$ROLE" == personal ]]; do
+    read -r -p "Is this the always-on dev Mac or your personal Mac? [dev/personal] " ROLE
+done
+mkdir -p "$(dirname "$ROLE_FILE")"
+echo "$ROLE" >"$ROLE_FILE"
 
 setup_ssh_server() {
     local conf=/etc/ssh/sshd_config.d/000-keys-only.conf
@@ -88,11 +65,7 @@ setup_firewall() {
     sudo "$fw" --setstealthmode on >/dev/null
 }
 
-setup_admin() {
-    create_dev_user
-    setup_ssh_server
-    try setup_firewall
-
+setup_brew() {
     log "Installing and upgrading everything in the Brewfile"
     try brew update
     try brew bundle install --file "$REPO/Brewfile"
@@ -134,6 +107,18 @@ setup_github_ssh() {
     fi
 }
 
+setup_github_token() {
+    local token
+    if ! gh auth status >/dev/null 2>&1; then
+        log "Paste a fine-grained GitHub token, made as the README describes"
+        read -r -s -p "Token: " token
+        echo
+        printf '%s\n' "$token" | gh auth login -h github.com --with-token
+    fi
+    gh config set -h github.com git_protocol https
+    gh auth setup-git -h github.com
+}
+
 link_dotfiles() {
     local package dir rel target
     log "Linking dotfiles"
@@ -157,14 +142,24 @@ install_ghostty_terminfo() {
 }
 
 setup_dev() {
+    log "Setting up GitHub access with a fine-grained token"
+    setup_github_token
+
+    log "Installing Ghostty's terminfo for SSH sessions from the personal Mac"
+    try install_ghostty_terminfo
+
+    log "Keeping the Mac awake and restarting it after a power failure"
+    try sudo pmset -a sleep 0 disksleep 0 autorestart 1
+}
+
+setup_personal() {
     log "Setting up GitHub access over SSH"
     setup_github_ssh
 
-    create_ssh_key "$HOME/.ssh/mac" "SSH into your other Mac"
+    create_ssh_key "$HOME/.ssh/mac" "SSH into the dev Mac"
+}
 
-    log "Installing Ghostty's terminfo for SSH sessions from the other Mac"
-    try install_ghostty_terminfo
-
+setup_user() {
     link_dotfiles
 
     log "Installing and updating the Rust toolchain"
@@ -179,17 +174,17 @@ setup_dev() {
     try nvim --headless "+Lazy! sync" +qa
 }
 
-if is_admin; then
-    setup_admin
-else
+setup_ssh_server
+try setup_firewall
+setup_brew
+if [[ "$ROLE" == dev ]]; then
     setup_dev
+else
+    setup_personal
 fi
+setup_user
 
 log "Applying macOS defaults"
 try bash "$REPO/macos.sh"
 
-if is_admin; then
-    log "Done. Log out and back in so every setting takes effect, then run the same setup command in the dev account"
-else
-    log "Done. Log out and back in so every setting takes effect. Commit lazy-lock.json if it changed"
-fi
+log "Done. Log out and back in so every setting takes effect. Commit lazy-lock.json if it changed"

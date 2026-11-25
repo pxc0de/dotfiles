@@ -1,5 +1,3 @@
-cask_args fontdir: "/Library/Fonts"
-
 tap "stablyai/orca"
 
 brew "stow"

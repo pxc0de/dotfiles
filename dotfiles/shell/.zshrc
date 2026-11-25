@@ -12,7 +12,7 @@ alias gp="git push origin -u HEAD"
 alias gpom="git pull origin main"
 alias gdab="git branch --format='%(refname:short)' | grep -vx main | xargs git branch -D"
 
-mac() { ssh "${MAC:?add MAC=<dev-name>@<other-mac> to ~/.zshrc.local}" "$@"; }
+mac() { ssh "${MAC:?add MAC=<user>@<dev-mac> to ~/.zshrc.local}" "$@"; }
 
 git_branch() {
   local branch
