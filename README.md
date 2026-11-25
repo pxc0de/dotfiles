@@ -183,7 +183,16 @@ curl -fsSL https://raw.githubusercontent.com/pxc0de/dotfiles/main/setup.sh | bas
 
 It asks for your password and offers the saved role from `~/.config/dotfiles/role`; press Return to keep it. It installs new `Brewfile` entries, upgrades everything, relinks the dotfiles and updates Rust and the tmux and Neovim plugins. Commit `lazy-lock.json` if it changed.
 
-Nothing is uninstalled. A file in the way of a link moves to `.bak`.
+A file in the way of a link moves to `.bak`.
+
+Nothing is uninstalled, even after you remove it from the `Brewfile`. To remove one app or tool, run `brew uninstall --cask <app>` or `brew uninstall <tool>` on each Mac. To remove everything that isn't in the `Brewfile`, preview the list first:
+
+```bash
+brew bundle cleanup --file ~/dotfiles/Brewfile          # lists what would be removed
+brew bundle cleanup --file ~/dotfiles/Brewfile --force  # removes it
+```
+
+`cleanup` also removes anything you installed with `brew install` but never added to the `Brewfile`. It leaves apps from the App Store or a downloaded installer alone, because Homebrew doesn't manage them.
 
 ## Forking
 
